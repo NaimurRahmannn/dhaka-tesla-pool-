@@ -4,11 +4,12 @@ agent-context/
 node_modules/
 .next/
 dist/
+apps/api/src/generated/
 *.tsbuildinfo
 coverage/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-docs/
 CHANGELOG_AI.md
+docs/
