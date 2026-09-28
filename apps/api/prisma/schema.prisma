@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+}
+
+enum VehicleStatus {
+  OFFLINE
+  ONLINE
+}
+
+enum RideStatus {
+  REQUESTED
+  MATCHED
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum PoolStatus {
+  MATCHING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  vehicles       Vehicle[]
+  rideRequests   RideRequest[]
+  statusChanges  RideStatusHistory[] @relation("StatusChangedBy")
+
+  @@map("users")
+}
+
+model Vehicle {
+  id        String        @id @default(uuid()) @db.Uuid
+  driverId  String        @map("driver_id") @db.Uuid
+  name      String
+  capacity  Int
+  status    VehicleStatus @default(OFFLINE)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  driver User   @relation(fields: [driverId], references: [id])
+  pools  Pool[]
+
+  @@index([driverId])
+  @@map("vehicles")
+}
+
+model RideRequest {
+  id                  String      @id @default(uuid()) @db.Uuid
+  passengerId         String      @map("passenger_id") @db.Uuid
+  pickupLat           Decimal     @map("pickup_lat") @db.Decimal(10, 7)
+  pickupLng           Decimal     @map("pickup_lng") @db.Decimal(10, 7)
+  destinationLat      Decimal     @map("destination_lat") @db.Decimal(10, 7)
+  destinationLng      Decimal     @map("destination_lng") @db.Decimal(10, 7)
+  status              RideStatus  @default(REQUESTED)
+  requestedSeats      Int         @default(1) @map("requested_seats")
+  estimatedFarePaisa  Int?        @map("estimated_fare_paisa")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  passenger       User                @relation(fields: [passengerId], references: [id])
+  routeSnapshots  RouteSnapshot[]
+  poolMember      PoolMember?
+  statusHistory   RideStatusHistory[]
+
+  @@index([passengerId])
+  @@index([status, createdAt])
+  @@map("ride_requests")
+}
+
+model RouteSnapshot {
+  id             String      @id @default(uuid()) @db.Uuid
+  rideRequestId  String      @map("ride_request_id") @db.Uuid
+  distanceMeter  Int         @map("distance_meter")
+  durationSecond Int         @map("duration_second")
+  geometry       Json        @db.JsonB
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  rideRequest RideRequest @relation(fields: [rideRequestId], references: [id])
+
+  @@index([rideRequestId, createdAt])
+  @@map("route_snapshots")
+}
+
+model Pool {
+  id        String     @id @default(uuid()) @db.Uuid
+  vehicleId String     @map("vehicle_id") @db.Uuid
+  status    PoolStatus @default(MATCHING)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  vehicle  Vehicle      @relation(fields: [vehicleId], references: [id])
+  members  PoolMember[]
+
+  @@index([vehicleId, status])
+  @@map("pools")
+}
+
+model PoolMember {
+  id            String      @id @default(uuid()) @db.Uuid
+  poolId        String      @map("pool_id") @db.Uuid
+  rideRequestId String      @unique @map("ride_request_id") @db.Uuid
+  seatCount     Int         @map("seat_count")
+  farePaisa     Int         @map("fare_paisa")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  pool        Pool        @relation(fields: [poolId], references: [id])
+  rideRequest RideRequest @relation(fields: [rideRequestId], references: [id])
+
+  @@index([poolId])
+  @@map("pool_members")
+}
+
+model RideStatusHistory {
+  id            String      @id @default(uuid()) @db.Uuid
+  rideRequestId String      @map("ride_request_id") @db.Uuid
+  previousStatus RideStatus? @map("previous_status")
+  newStatus     RideStatus  @map("new_status")
+  changedBy     String      @map("changed_by") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  rideRequest RideRequest @relation(fields: [rideRequestId], references: [id])
+  actor       User        @relation("StatusChangedBy", fields: [changedBy], references: [id])
+
+  @@index([rideRequestId, createdAt])
+  @@index([changedBy])
+  @@map("ride_status_history")
+}
