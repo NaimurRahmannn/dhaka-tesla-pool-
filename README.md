@@ -4,9 +4,9 @@ Dhaka Tesla Pool is a ride-pooling MVP foundation for sharing a three-seat Tesla
 
 ## Current Status
 
-Phase 0: Project Foundation
+Repository foundation and database layer completed.
 
-The repository currently contains the monorepo setup, Next.js web scaffold, NestJS API scaffold, and PostgreSQL development container. Product features will be added in later phases.
+The repository currently contains the monorepo setup, Next.js web scaffold, NestJS API scaffold, PostgreSQL development container, and database foundation. Product features will be added as development continues.
 
 ## Basic Setup
 
