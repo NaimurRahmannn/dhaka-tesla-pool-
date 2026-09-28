@@ -12,7 +12,7 @@ The repository currently contains the monorepo setup, Next.js web scaffold, Nest
 
 Prerequisites:
 
-- Node.js 20.9 or newer
+- Node.js 20.19 or newer
 - npm
 - Docker Desktop with Docker Compose
 
@@ -34,6 +34,14 @@ Start PostgreSQL:
 docker compose up -d db
 ```
 
+Generate the Prisma client, apply migrations, and load development seed data:
+
+```powershell
+npm run db:generate --workspace=@dhaka-tesla-pool/api
+npm run db:migrate --workspace=@dhaka-tesla-pool/api
+npm run db:seed --workspace=@dhaka-tesla-pool/api
+```
+
 Start the web workspace:
 
 ```powershell
@@ -45,5 +53,3 @@ Start the API workspace in a second terminal:
 ```powershell
 npm run dev:api
 ```
-
-This is intentionally an initial foundation. Authentication, database schema, API endpoints, pooling, ride logic, and product UI are planned for later phases.
