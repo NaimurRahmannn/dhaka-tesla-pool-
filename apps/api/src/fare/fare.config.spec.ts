@@ -11,8 +11,8 @@ describe('fare configuration', () => {
       pricePerKmPaisa,
       poolDiscountPercent,
     }).toEqual({
-      baseFarePaisa: 5000,
-      pricePerKmPaisa: 1500,
+      baseFarePaisa: 2000,
+      pricePerKmPaisa: 500,
       poolDiscountPercent: 20,
     });
   });
