@@ -1,0 +1,19 @@
+import { APP_GUARD } from '@nestjs/core';
+import { AppModule } from './app.module.js';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from './auth/guards/roles.guard.js';
+
+describe('AppModule authorization guard wiring', () => {
+  it('registers only RolesGuard as a global guard', () => {
+    const providers = Reflect.getMetadata('providers', AppModule) as unknown[];
+
+    expect(providers).toContainEqual({
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    });
+    expect(providers).not.toContainEqual({
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    });
+  });
+});
