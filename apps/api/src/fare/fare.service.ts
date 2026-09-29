@@ -21,7 +21,7 @@ export class FareService {
     const distanceChargePaisa = distanceKilometer * pricePerKmPaisa;
     const subtotalPaisa = baseFarePaisa + distanceChargePaisa;
     const poolDiscountPaisa = isPooled
-      ? (subtotalPaisa * poolDiscountPercent) / 100
+      ? Math.floor((subtotalPaisa * poolDiscountPercent) / 100)
       : 0;
 
     return {
