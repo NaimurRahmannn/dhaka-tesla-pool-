@@ -2,6 +2,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
+import { RoutingModule } from './routing/routing.module.js';
 
 describe('AppModule authorization guard wiring', () => {
   it('registers only RolesGuard as a global guard', () => {
@@ -15,5 +16,13 @@ describe('AppModule authorization guard wiring', () => {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     });
+  });
+});
+
+describe('AppModule routing wiring', () => {
+  it('imports the routing module', () => {
+    const imports = Reflect.getMetadata('imports', AppModule) as unknown[];
+
+    expect(imports).toContain(RoutingModule);
   });
 });
