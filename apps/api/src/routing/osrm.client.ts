@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { RouteRequestDto } from './dto/route-request.dto.js';
 import type { RouteResult } from './interfaces/route-result.interface.js';
+import type { RouteWaypoint } from './interfaces/route-waypoint.interface.js';
 import type { RoutingClient } from './interfaces/routing-client.interface.js';
 import { OSRM_REQUEST_TIMEOUT_MS } from './routing.constants.js';
 
@@ -47,6 +48,20 @@ export class OsrmClient implements RoutingClient {
   ) {}
 
   async getRoute(request: RouteRequestDto): Promise<RouteResult> {
+    return this.requestRoute((baseUrl) => this.buildRouteUrl(baseUrl, request));
+  }
+
+  async getRouteThroughWaypoints(
+    waypoints: readonly RouteWaypoint[],
+  ): Promise<RouteResult> {
+    return this.requestRoute((baseUrl) =>
+      this.buildWaypointRouteUrl(baseUrl, waypoints),
+    );
+  }
+
+  private async requestRoute(
+    buildUrl: (baseUrl: string) => string,
+  ): Promise<RouteResult> {
     const baseUrl = this.configService.get<string>('OSRM_BASE_URL');
 
     if (!baseUrl) {
@@ -55,7 +70,7 @@ export class OsrmClient implements RoutingClient {
       );
     }
 
-    const routeUrl = this.buildRouteUrl(baseUrl, request);
+    const routeUrl = buildUrl(baseUrl);
     let responseData: unknown;
 
     try {
@@ -74,6 +89,17 @@ export class OsrmClient implements RoutingClient {
 
   private buildRouteUrl(baseUrl: string, request: RouteRequestDto): string {
     return `${baseUrl.replace(/\/+$/, '')}/route/v1/driving/${request.pickupLng},${request.pickupLat};${request.destinationLng},${request.destinationLat}`;
+  }
+
+  private buildWaypointRouteUrl(
+    baseUrl: string,
+    waypoints: readonly RouteWaypoint[],
+  ): string {
+    const coordinates = waypoints
+      .map((waypoint) => `${waypoint.lng},${waypoint.lat}`)
+      .join(';');
+
+    return `${baseUrl.replace(/\/+$/, '')}/route/v1/driving/${coordinates}`;
   }
 
   private mapResponse(body: unknown): RouteResult {

@@ -3,9 +3,9 @@ import { Test } from '@nestjs/testing';
 import { FareService } from '../fare/fare.service.js';
 import { PoolStatus, RideStatus } from '../generated/prisma/client.js';
 import { RideTransitionService } from '../ride/ride-transition.service.js';
+import { RoutingService } from '../routing/routing.service.js';
 import { PrismaService } from '../users/prisma.service.js';
 import { RouteCorridorMatcher } from './matching/route-corridor-matcher.js';
-import type { RouteCorridorMatchResult } from './matching/route-corridor.types.js';
 import { PoolCreationService } from './pool-creation.service.js';
 
 type RideRecord = {
@@ -215,11 +215,11 @@ function createInitialState(overrides: Partial<TransactionState> = {}) {
 async function createService({
   initialState = createInitialState(),
   failHistoryCreation = false,
-  matcherResults = [],
+  sharedRouteDistanceMeter = 12000,
 }: {
   initialState?: TransactionState;
   failHistoryCreation?: boolean;
-  matcherResults?: RouteCorridorMatchResult[];
+  sharedRouteDistanceMeter?: number;
 } = {}) {
   const { committed, prisma, transactionClients } = createPoolCreationPrismaMock(
     initialState,
@@ -234,21 +234,18 @@ async function createService({
       finalFarePaisa: distanceMeter + 1600,
     })),
   } as unknown as FareService;
-  const routeCorridorMatcher = {
-    match: vi.fn(
-      () =>
-        matcherResults.shift() ?? {
-          compatible: true,
-          pickupDistanceMeter: 100,
-          destinationDistanceMeter: 100,
-          detourPercent: 10,
-        },
-    ),
-  } as unknown as RouteCorridorMatcher;
+  const routingService = {
+    getRouteThroughWaypoints: vi.fn(async () => ({
+      distanceMeter: sharedRouteDistanceMeter,
+      durationSecond: 1200,
+      geometry: {},
+    })),
+  } as unknown as RoutingService;
   const module = await Test.createTestingModule({
     providers: [
       PoolCreationService,
       RideTransitionService,
+      RouteCorridorMatcher,
       {
         provide: PrismaService,
         useValue: prisma,
@@ -258,19 +255,23 @@ async function createService({
         useValue: fareService,
       },
       {
-        provide: RouteCorridorMatcher,
-        useValue: routeCorridorMatcher,
+        provide: RoutingService,
+        useValue: routingService,
       },
     ],
   }).compile();
   const transitionService = module.get(RideTransitionService);
   const transitionSpy = vi.spyOn(transitionService, 'transitionRideStatus');
+  const routeCorridorMatcher = module.get(RouteCorridorMatcher);
+  const routeCorridorMatcherSpy = vi.spyOn(routeCorridorMatcher, 'match');
 
   return {
     committed,
     fareService,
     module,
     routeCorridorMatcher,
+    routeCorridorMatcherSpy,
+    routingService,
     service: module.get(PoolCreationService),
     transitionSpy,
     transactionClients,
@@ -282,7 +283,8 @@ describe('PoolCreationService', () => {
     const {
       committed,
       module,
-      routeCorridorMatcher,
+      routeCorridorMatcherSpy,
+      routingService,
       service,
       transitionSpy,
     } = await createService();
@@ -319,22 +321,77 @@ describe('PoolCreationService', () => {
       RideStatus.MATCHED,
       RideStatus.MATCHED,
     ]);
-    expect(routeCorridorMatcher.match).toHaveBeenCalledTimes(1);
+    expect(routingService.getRouteThroughWaypoints).toHaveBeenCalledTimes(1);
+    expect(routeCorridorMatcherSpy).toHaveBeenCalledTimes(1);
     expect(transitionSpy).toHaveBeenCalledTimes(2);
 
     await module.close();
   });
 
+  it('uses RoutingService shared route distance for compatibility checks', async () => {
+    const {
+      module,
+      routeCorridorMatcherSpy,
+      routingService,
+      service,
+    } = await createService({
+      sharedRouteDistanceMeter: 12000,
+    });
+
+    await service.createPool('vehicle-id', ['ride-1', 'ride-2']);
+
+    expect(routingService.getRouteThroughWaypoints).toHaveBeenCalledWith([
+      {
+        lat: 23.7806,
+        lng: 90.4074,
+      },
+      {
+        lat: 23.781,
+        lng: 90.4077,
+      },
+      {
+        lat: 23.8103,
+        lng: 90.4125,
+      },
+      {
+        lat: 23.811,
+        lng: 90.413,
+      },
+    ]);
+    expect(routeCorridorMatcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ distanceMeter: 10000 }),
+      expect.objectContaining({ distanceMeter: 12000 }),
+      12000,
+    );
+
+    await module.close();
+  });
+
+  it('allows pool creation when the shared route creates a 20 percent detour', async () => {
+    const { module, service } = await createService({
+      sharedRouteDistanceMeter: 12000,
+    });
+
+    await expect(
+      service.createPool('vehicle-id', ['ride-1', 'ride-2']),
+    ).resolves.toEqual({
+      id: 'pool-id',
+      status: PoolStatus.MATCHING,
+    });
+
+    await module.close();
+  });
+
   it('rejects pool creation when pickup distance is incompatible', async () => {
+    const initialState = createInitialState();
+    const secondRide = initialState.rides[1];
+
+    if (secondRide) {
+      secondRide.pickupLat = 23.91;
+    }
+
     const { committed, module, service } = await createService({
-      matcherResults: [
-        {
-          compatible: false,
-          pickupDistanceMeter: 2001,
-          destinationDistanceMeter: 100,
-          detourPercent: 10,
-        },
-      ],
+      initialState,
     });
 
     await expect(
@@ -352,15 +409,15 @@ describe('PoolCreationService', () => {
   });
 
   it('rejects pool creation when destination distance is incompatible', async () => {
+    const initialState = createInitialState();
+    const secondRide = initialState.rides[1];
+
+    if (secondRide) {
+      secondRide.destinationLat = 23.95;
+    }
+
     const { committed, module, service } = await createService({
-      matcherResults: [
-        {
-          compatible: false,
-          pickupDistanceMeter: 100,
-          destinationDistanceMeter: 3001,
-          detourPercent: 10,
-        },
-      ],
+      initialState,
     });
 
     await expect(
@@ -379,14 +436,7 @@ describe('PoolCreationService', () => {
 
   it('rejects pool creation when detour is excessive', async () => {
     const { committed, module, service } = await createService({
-      matcherResults: [
-        {
-          compatible: false,
-          pickupDistanceMeter: 100,
-          destinationDistanceMeter: 100,
-          detourPercent: 31,
-        },
-      ],
+      sharedRouteDistanceMeter: 14000,
     });
 
     await expect(

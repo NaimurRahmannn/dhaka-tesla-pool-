@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { throwError, of } from 'rxjs';
 import { RouteRequestDto } from './dto/route-request.dto.js';
 import { OsrmClient } from './osrm.client.js';
+import type { RouteWaypoint } from './interfaces/route-waypoint.interface.js';
 
 function createClient(
   response: ReturnType<typeof of> | ReturnType<typeof throwError>,
@@ -56,6 +57,39 @@ describe('OsrmClient', () => {
     expect(configService.get).toHaveBeenCalledWith('OSRM_BASE_URL');
     expect(httpService.get).toHaveBeenCalledWith(
       'https://routing.example.test/route/v1/driving/90.4066,23.7937;90.4071,23.7806',
+      { timeout: 5000 },
+    );
+  });
+
+  it('calculates a route through multiple waypoints using longitude before latitude', async () => {
+    const { client, httpService } = createClient(
+      of({
+        data: {
+          code: 'Ok',
+          routes: [
+            {
+              distance: 12000,
+              duration: 1500,
+              geometry: {},
+            },
+          ],
+        },
+      }),
+    );
+    const waypoints: RouteWaypoint[] = [
+      { lat: 23.7937, lng: 90.4066 },
+      { lat: 23.7806, lng: 90.4071 },
+      { lat: 23.781, lng: 90.413 },
+    ];
+
+    await expect(client.getRouteThroughWaypoints(waypoints)).resolves.toEqual({
+      distanceMeter: 12000,
+      durationSecond: 1500,
+      geometry: {},
+    });
+
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://routing.example.test/route/v1/driving/90.4066,23.7937;90.4071,23.7806;90.413,23.781',
       { timeout: 5000 },
     );
   });

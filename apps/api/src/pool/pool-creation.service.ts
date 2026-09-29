@@ -7,6 +7,8 @@ import { CalculateFareDto } from '../fare/dto/calculate-fare.dto.js';
 import { FareService } from '../fare/fare.service.js';
 import { PoolStatus, RideStatus } from '../generated/prisma/client.js';
 import { RideTransitionService } from '../ride/ride-transition.service.js';
+import type { RouteWaypoint } from '../routing/interfaces/route-waypoint.interface.js';
+import { RoutingService } from '../routing/routing.service.js';
 import { PrismaService } from '../users/prisma.service.js';
 import { RouteCorridorMatcher } from './matching/route-corridor-matcher.js';
 import type { RouteCandidate } from './matching/route-corridor.types.js';
@@ -23,6 +25,7 @@ export class PoolCreationService {
     private readonly fareService: FareService,
     private readonly rideTransitionService: RideTransitionService,
     private readonly routeCorridorMatcher: RouteCorridorMatcher,
+    private readonly routingService: RoutingService,
   ) {}
 
   async createPool(
@@ -104,7 +107,7 @@ export class PoolCreationService {
         }
       }
 
-      this.assertRidesAreRouteCompatible(rides);
+      await this.assertRidesAreRouteCompatible(rides);
 
       const pool = await tx.pool.create({
         data: {
@@ -151,7 +154,7 @@ export class PoolCreationService {
     });
   }
 
-  private assertRidesAreRouteCompatible(
+  private async assertRidesAreRouteCompatible(
     rides: Array<{
       id: string;
       pickupLat: unknown;
@@ -160,7 +163,7 @@ export class PoolCreationService {
       destinationLng: unknown;
       routeSnapshots: Array<{ distanceMeter: number }>;
     }>,
-  ): void {
+  ): Promise<void> {
     for (let index = 0; index < rides.length; index += 1) {
       const existingRide = rides[index];
 
@@ -181,14 +184,13 @@ export class PoolCreationService {
 
         const existingRoute = toRouteCandidate(existingRide);
         const candidateRoute = toRouteCandidate(candidateRide);
-        const sharedRouteDistanceMeter = Math.max(
-          existingRoute.distanceMeter,
-          candidateRoute.distanceMeter,
+        const sharedRoute = await this.routingService.getRouteThroughWaypoints(
+          buildSharedRouteWaypoints(existingRoute, candidateRoute),
         );
         const match = this.routeCorridorMatcher.match(
           existingRoute,
           candidateRoute,
-          sharedRouteDistanceMeter,
+          sharedRoute.distanceMeter,
         );
 
         if (!match.compatible) {
@@ -219,4 +221,28 @@ function toRouteCandidate(ride: {
     destinationLng: Number(ride.destinationLng),
     distanceMeter: latestRoute.distanceMeter,
   };
+}
+
+function buildSharedRouteWaypoints(
+  existingRoute: RouteCandidate,
+  candidateRoute: RouteCandidate,
+): RouteWaypoint[] {
+  return [
+    {
+      lat: existingRoute.pickupLat,
+      lng: existingRoute.pickupLng,
+    },
+    {
+      lat: candidateRoute.pickupLat,
+      lng: candidateRoute.pickupLng,
+    },
+    {
+      lat: existingRoute.destinationLat,
+      lng: existingRoute.destinationLng,
+    },
+    {
+      lat: candidateRoute.destinationLat,
+      lng: candidateRoute.destinationLng,
+    },
+  ];
 }
