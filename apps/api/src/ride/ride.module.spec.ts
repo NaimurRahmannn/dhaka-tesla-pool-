@@ -5,6 +5,7 @@ import { RoutingService } from '../routing/routing.service.js';
 import { PrismaService } from '../users/prisma.service.js';
 import { RideModule } from './ride.module.js';
 import { RideService } from './ride.service.js';
+import { RideTransitionService } from './ride-transition.service.js';
 
 describe('RideModule', () => {
   it('compiles and provides RideService through dependency injection', async () => {
@@ -26,6 +27,9 @@ describe('RideModule', () => {
       .compile();
 
     expect(module.get(RideService)).toBeInstanceOf(RideService);
+    expect(module.get(RideTransitionService)).toBeInstanceOf(
+      RideTransitionService,
+    );
 
     await module.close();
   });
