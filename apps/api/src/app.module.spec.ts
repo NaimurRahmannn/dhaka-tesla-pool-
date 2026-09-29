@@ -2,6 +2,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
+import { DriverModule } from './driver/driver.module.js';
 import { FareModule } from './fare/fare.module.js';
 import { RoutingModule } from './routing/routing.module.js';
 import { RideModule } from './ride/ride.module.js';
@@ -28,5 +29,6 @@ describe('AppModule routing wiring', () => {
     expect(imports).toContain(RoutingModule);
     expect(imports).toContain(FareModule);
     expect(imports).toContain(RideModule);
+    expect(imports).toContain(DriverModule);
   });
 });
