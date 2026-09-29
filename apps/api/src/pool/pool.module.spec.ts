@@ -8,6 +8,7 @@ import type { JoinPoolDto } from './dto/join-pool.dto.js';
 import type { PoolMatchResult } from './interfaces/pool-match-result.interface.js';
 import { PoolCreationService } from './pool-creation.service.js';
 import { PoolSeatAllocationService } from './pool-seat-allocation.service.js';
+import { PoolTransitionService } from './pool-transition.service.js';
 import { PoolModule } from './pool.module.js';
 import { PoolService } from './pool.service.js';
 
@@ -36,6 +37,9 @@ describe('PoolModule', () => {
     expect(module.get(PoolCreationService)).toBeInstanceOf(PoolCreationService);
     expect(module.get(PoolSeatAllocationService)).toBeInstanceOf(
       PoolSeatAllocationService,
+    );
+    expect(module.get(PoolTransitionService)).toBeInstanceOf(
+      PoolTransitionService,
     );
 
     await module.close();
