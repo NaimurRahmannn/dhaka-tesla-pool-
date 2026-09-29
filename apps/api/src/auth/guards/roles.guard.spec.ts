@@ -15,22 +15,26 @@ class SharedRideController {
 }
 
 function createContext(
-  role: UserRole,
+  role: UserRole | undefined,
   handler: () => void,
   controller: object,
 ): ExecutionContext {
-  return {
-    getHandler: () => handler,
-    getClass: () => controller,
-    switchToHttp: () => ({
-      getRequest: () => ({
+  const request = role
+    ? {
         user: {
           id: 'user-id',
           name: 'Jashim',
           email: 'jashim@example.com',
           role,
         },
-      }),
+      }
+    : {};
+
+  return {
+    getHandler: () => handler,
+    getClass: () => controller,
+    switchToHttp: () => ({
+      getRequest: () => request,
     }),
   } as unknown as ExecutionContext;
 }
@@ -57,6 +61,20 @@ describe('RolesGuard', () => {
       guard.canActivate(
         createContext(
           UserRole.PASSENGER,
+          DriverController.prototype.driverOnly,
+          DriverController,
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects a request without an authenticated user', () => {
+    const guard = new RolesGuard(new Reflector());
+
+    expect(
+      guard.canActivate(
+        createContext(
+          undefined,
           DriverController.prototype.driverOnly,
           DriverController,
         ),
