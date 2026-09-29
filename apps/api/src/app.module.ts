@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
+import { FareModule } from './fare/fare.module.js';
 import { RoutingModule } from './routing/routing.module.js';
 
 @Module({
@@ -14,6 +15,7 @@ import { RoutingModule } from './routing/routing.module.js';
     }),
     AuthModule,
     RoutingModule,
+    FareModule,
   ],
   controllers: [AppController],
   providers: [

@@ -2,6 +2,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
+import { FareModule } from './fare/fare.module.js';
 import { RoutingModule } from './routing/routing.module.js';
 
 describe('AppModule authorization guard wiring', () => {
@@ -24,5 +25,6 @@ describe('AppModule routing wiring', () => {
     const imports = Reflect.getMetadata('imports', AppModule) as unknown[];
 
     expect(imports).toContain(RoutingModule);
+    expect(imports).toContain(FareModule);
   });
 });
