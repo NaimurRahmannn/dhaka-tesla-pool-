@@ -62,6 +62,14 @@ describe('FareService', () => {
     });
   });
 
+  it('returns only integer paisa values', () => {
+    const fareBreakdown = fareService.calculateFare(
+      new CalculateFareDto(5230, true),
+    );
+
+    expect(Object.values(fareBreakdown).every(Number.isInteger)).toBe(true);
+  });
+
   it('rejects negative distance', () => {
     expect(() =>
       fareService.calculateFare(new CalculateFareDto(-1, false)),
