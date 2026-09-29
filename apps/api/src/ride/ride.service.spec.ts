@@ -3,6 +3,7 @@ import { FareService } from '../fare/fare.service.js';
 import { RoutingService } from '../routing/routing.service.js';
 import { PrismaService } from '../users/prisma.service.js';
 import { RideService } from './ride.service.js';
+import { RideTransitionService } from './ride-transition.service.js';
 
 describe('RideService', () => {
   it('is injectable through NestJS dependency injection', async () => {
@@ -12,6 +13,7 @@ describe('RideService', () => {
         { provide: PrismaService, useValue: {} },
         { provide: RoutingService, useValue: {} },
         { provide: FareService, useValue: {} },
+        { provide: RideTransitionService, useValue: {} },
       ],
     }).compile();
 

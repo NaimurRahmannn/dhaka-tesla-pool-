@@ -9,6 +9,7 @@ import { RoutingService } from '../routing/routing.service.js';
 import { PrismaService } from '../users/prisma.service.js';
 import { CreateRideRequestDto } from './dto/create-ride-request.dto.js';
 import { RideService } from './ride.service.js';
+import { RideTransitionService } from './ride-transition.service.js';
 
 type TransactionData = {
   rideRequests: Array<Record<string, unknown>>;
@@ -102,6 +103,7 @@ function createModule(
       { provide: PrismaService, useValue: prisma },
       { provide: RoutingService, useValue: routingService },
       { provide: FareService, useValue: fareService },
+      { provide: RideTransitionService, useValue: {} },
     ],
   });
 }
