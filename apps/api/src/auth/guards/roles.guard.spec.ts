@@ -9,10 +9,19 @@ class DriverController {
   driverOnly(): void {}
 }
 
-function createContext(role: UserRole): ExecutionContext {
+class SharedRideController {
+  @Roles('DRIVER', 'PASSENGER')
+  sharedAccess(): void {}
+}
+
+function createContext(
+  role: UserRole,
+  handler: () => void,
+  controller: object,
+): ExecutionContext {
   return {
-    getHandler: () => DriverController.prototype.driverOnly,
-    getClass: () => DriverController,
+    getHandler: () => handler,
+    getClass: () => controller,
     switchToHttp: () => ({
       getRequest: () => ({
         user: {
@@ -30,12 +39,56 @@ describe('RolesGuard', () => {
   it('allows a user with a matching role', () => {
     const guard = new RolesGuard(new Reflector());
 
-    expect(guard.canActivate(createContext(UserRole.DRIVER))).toBe(true);
+    expect(
+      guard.canActivate(
+        createContext(
+          UserRole.DRIVER,
+          DriverController.prototype.driverOnly,
+          DriverController,
+        ),
+      ),
+    ).toBe(true);
   });
 
   it('rejects a user with a different role', () => {
     const guard = new RolesGuard(new Reflector());
 
-    expect(guard.canActivate(createContext(UserRole.PASSENGER))).toBe(false);
+    expect(
+      guard.canActivate(
+        createContext(
+          UserRole.PASSENGER,
+          DriverController.prototype.driverOnly,
+          DriverController,
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it('allows a driver when multiple roles are required', () => {
+    const guard = new RolesGuard(new Reflector());
+
+    expect(
+      guard.canActivate(
+        createContext(
+          UserRole.DRIVER,
+          SharedRideController.prototype.sharedAccess,
+          SharedRideController,
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('allows a passenger when multiple roles are required', () => {
+    const guard = new RolesGuard(new Reflector());
+
+    expect(
+      guard.canActivate(
+        createContext(
+          UserRole.PASSENGER,
+          SharedRideController.prototype.sharedAccess,
+          SharedRideController,
+        ),
+      ),
+    ).toBe(true);
   });
 });
