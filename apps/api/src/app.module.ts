@@ -7,6 +7,7 @@ import { AppService } from './app.service.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
 import { FareModule } from './fare/fare.module.js';
 import { RoutingModule } from './routing/routing.module.js';
+import { RideModule } from './ride/ride.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { RoutingModule } from './routing/routing.module.js';
     AuthModule,
     RoutingModule,
     FareModule,
+    RideModule,
   ],
   controllers: [AppController],
   providers: [
