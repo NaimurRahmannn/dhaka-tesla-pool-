@@ -8,6 +8,8 @@ import { FareService } from '../fare/fare.service.js';
 import { PoolStatus, RideStatus } from '../generated/prisma/client.js';
 import { RideTransitionService } from '../ride/ride-transition.service.js';
 import { PrismaService } from '../users/prisma.service.js';
+import { RouteCorridorMatcher } from './matching/route-corridor-matcher.js';
+import type { RouteCandidate } from './matching/route-corridor.types.js';
 
 export interface PoolCreationResult {
   id: string;
@@ -20,6 +22,7 @@ export class PoolCreationService {
     private readonly prisma: PrismaService,
     private readonly fareService: FareService,
     private readonly rideTransitionService: RideTransitionService,
+    private readonly routeCorridorMatcher: RouteCorridorMatcher,
   ) {}
 
   async createPool(
@@ -56,6 +59,10 @@ export class PoolCreationService {
         select: {
           id: true,
           passengerId: true,
+          pickupLat: true,
+          pickupLng: true,
+          destinationLat: true,
+          destinationLng: true,
           requestedSeats: true,
           status: true,
           routeSnapshots: {
@@ -96,6 +103,8 @@ export class PoolCreationService {
           );
         }
       }
+
+      this.assertRidesAreRouteCompatible(rides);
 
       const pool = await tx.pool.create({
         data: {
@@ -141,4 +150,73 @@ export class PoolCreationService {
       return pool;
     });
   }
+
+  private assertRidesAreRouteCompatible(
+    rides: Array<{
+      id: string;
+      pickupLat: unknown;
+      pickupLng: unknown;
+      destinationLat: unknown;
+      destinationLng: unknown;
+      routeSnapshots: Array<{ distanceMeter: number }>;
+    }>,
+  ): void {
+    for (let index = 0; index < rides.length; index += 1) {
+      const existingRide = rides[index];
+
+      if (!existingRide) {
+        continue;
+      }
+
+      for (
+        let candidateIndex = index + 1;
+        candidateIndex < rides.length;
+        candidateIndex += 1
+      ) {
+        const candidateRide = rides[candidateIndex];
+
+        if (!candidateRide) {
+          continue;
+        }
+
+        const existingRoute = toRouteCandidate(existingRide);
+        const candidateRoute = toRouteCandidate(candidateRide);
+        const sharedRouteDistanceMeter = Math.max(
+          existingRoute.distanceMeter,
+          candidateRoute.distanceMeter,
+        );
+        const match = this.routeCorridorMatcher.match(
+          existingRoute,
+          candidateRoute,
+          sharedRouteDistanceMeter,
+        );
+
+        if (!match.compatible) {
+          throw new BadRequestException('Ride requests are not pool compatible');
+        }
+      }
+    }
+  }
+}
+
+function toRouteCandidate(ride: {
+  pickupLat: unknown;
+  pickupLng: unknown;
+  destinationLat: unknown;
+  destinationLng: unknown;
+  routeSnapshots: Array<{ distanceMeter: number }>;
+}): RouteCandidate {
+  const latestRoute = ride.routeSnapshots[0];
+
+  if (!latestRoute) {
+    throw new BadRequestException('Ride request has no route snapshot');
+  }
+
+  return {
+    pickupLat: Number(ride.pickupLat),
+    pickupLng: Number(ride.pickupLng),
+    destinationLat: Number(ride.destinationLat),
+    destinationLng: Number(ride.destinationLng),
+    distanceMeter: latestRoute.distanceMeter,
+  };
 }

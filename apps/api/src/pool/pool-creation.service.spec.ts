@@ -4,11 +4,17 @@ import { FareService } from '../fare/fare.service.js';
 import { PoolStatus, RideStatus } from '../generated/prisma/client.js';
 import { RideTransitionService } from '../ride/ride-transition.service.js';
 import { PrismaService } from '../users/prisma.service.js';
+import { RouteCorridorMatcher } from './matching/route-corridor-matcher.js';
+import type { RouteCorridorMatchResult } from './matching/route-corridor.types.js';
 import { PoolCreationService } from './pool-creation.service.js';
 
 type RideRecord = {
   id: string;
   passengerId: string;
+  pickupLat: number;
+  pickupLng: number;
+  destinationLat: number;
+  destinationLng: number;
   requestedSeats: number;
   status: RideStatus;
   routeSnapshots: Array<{
@@ -179,6 +185,10 @@ function createInitialState(overrides: Partial<TransactionState> = {}) {
       {
         id: 'ride-1',
         passengerId: 'passenger-1',
+        pickupLat: 23.7806,
+        pickupLng: 90.4074,
+        destinationLat: 23.8103,
+        destinationLng: 90.4125,
         requestedSeats: 1,
         status: RideStatus.REQUESTED,
         routeSnapshots: [{ distanceMeter: 10000 }],
@@ -186,6 +196,10 @@ function createInitialState(overrides: Partial<TransactionState> = {}) {
       {
         id: 'ride-2',
         passengerId: 'passenger-2',
+        pickupLat: 23.781,
+        pickupLng: 90.4077,
+        destinationLat: 23.811,
+        destinationLng: 90.413,
         requestedSeats: 1,
         status: RideStatus.REQUESTED,
         routeSnapshots: [{ distanceMeter: 12000 }],
@@ -201,9 +215,11 @@ function createInitialState(overrides: Partial<TransactionState> = {}) {
 async function createService({
   initialState = createInitialState(),
   failHistoryCreation = false,
+  matcherResults = [],
 }: {
   initialState?: TransactionState;
   failHistoryCreation?: boolean;
+  matcherResults?: RouteCorridorMatchResult[];
 } = {}) {
   const { committed, prisma, transactionClients } = createPoolCreationPrismaMock(
     initialState,
@@ -218,6 +234,17 @@ async function createService({
       finalFarePaisa: distanceMeter + 1600,
     })),
   } as unknown as FareService;
+  const routeCorridorMatcher = {
+    match: vi.fn(
+      () =>
+        matcherResults.shift() ?? {
+          compatible: true,
+          pickupDistanceMeter: 100,
+          destinationDistanceMeter: 100,
+          detourPercent: 10,
+        },
+    ),
+  } as unknown as RouteCorridorMatcher;
   const module = await Test.createTestingModule({
     providers: [
       PoolCreationService,
@@ -230,6 +257,10 @@ async function createService({
         provide: FareService,
         useValue: fareService,
       },
+      {
+        provide: RouteCorridorMatcher,
+        useValue: routeCorridorMatcher,
+      },
     ],
   }).compile();
   const transitionService = module.get(RideTransitionService);
@@ -239,6 +270,7 @@ async function createService({
     committed,
     fareService,
     module,
+    routeCorridorMatcher,
     service: module.get(PoolCreationService),
     transitionSpy,
     transactionClients,
@@ -246,8 +278,14 @@ async function createService({
 }
 
 describe('PoolCreationService', () => {
-  it('creates a pool, members, and transitions rides to MATCHED', async () => {
-    const { committed, module, service, transitionSpy } = await createService();
+  it('creates a pool for compatible rides and transitions rides to MATCHED', async () => {
+    const {
+      committed,
+      module,
+      routeCorridorMatcher,
+      service,
+      transitionSpy,
+    } = await createService();
 
     await expect(
       service.createPool('vehicle-id', ['ride-1', 'ride-2']),
@@ -281,7 +319,86 @@ describe('PoolCreationService', () => {
       RideStatus.MATCHED,
       RideStatus.MATCHED,
     ]);
+    expect(routeCorridorMatcher.match).toHaveBeenCalledTimes(1);
     expect(transitionSpy).toHaveBeenCalledTimes(2);
+
+    await module.close();
+  });
+
+  it('rejects pool creation when pickup distance is incompatible', async () => {
+    const { committed, module, service } = await createService({
+      matcherResults: [
+        {
+          compatible: false,
+          pickupDistanceMeter: 2001,
+          destinationDistanceMeter: 100,
+          detourPercent: 10,
+        },
+      ],
+    });
+
+    await expect(
+      service.createPool('vehicle-id', ['ride-1', 'ride-2']),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(committed.pools).toHaveLength(0);
+    expect(committed.members).toHaveLength(0);
+    expect(committed.rides.map(({ status }) => status)).toEqual([
+      RideStatus.REQUESTED,
+      RideStatus.REQUESTED,
+    ]);
+
+    await module.close();
+  });
+
+  it('rejects pool creation when destination distance is incompatible', async () => {
+    const { committed, module, service } = await createService({
+      matcherResults: [
+        {
+          compatible: false,
+          pickupDistanceMeter: 100,
+          destinationDistanceMeter: 3001,
+          detourPercent: 10,
+        },
+      ],
+    });
+
+    await expect(
+      service.createPool('vehicle-id', ['ride-1', 'ride-2']),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(committed.pools).toHaveLength(0);
+    expect(committed.members).toHaveLength(0);
+    expect(committed.rides.map(({ status }) => status)).toEqual([
+      RideStatus.REQUESTED,
+      RideStatus.REQUESTED,
+    ]);
+
+    await module.close();
+  });
+
+  it('rejects pool creation when detour is excessive', async () => {
+    const { committed, module, service } = await createService({
+      matcherResults: [
+        {
+          compatible: false,
+          pickupDistanceMeter: 100,
+          destinationDistanceMeter: 100,
+          detourPercent: 31,
+        },
+      ],
+    });
+
+    await expect(
+      service.createPool('vehicle-id', ['ride-1', 'ride-2']),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(committed.pools).toHaveLength(0);
+    expect(committed.members).toHaveLength(0);
+    expect(committed.rides.map(({ status }) => status)).toEqual([
+      RideStatus.REQUESTED,
+      RideStatus.REQUESTED,
+    ]);
 
     await module.close();
   });
@@ -334,6 +451,10 @@ describe('PoolCreationService', () => {
           {
             id: 'ride-1',
             passengerId: 'passenger-1',
+            pickupLat: 23.7806,
+            pickupLng: 90.4074,
+            destinationLat: 23.8103,
+            destinationLng: 90.4125,
             requestedSeats: 1,
             status: RideStatus.MATCHED,
             routeSnapshots: [{ distanceMeter: 10000 }],
