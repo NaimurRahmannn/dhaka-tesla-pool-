@@ -38,12 +38,9 @@ describe('OsrmClient', () => {
           code: 'Ok',
           routes: [
             {
-              distance: 4200,
-              duration: 780,
-              geometry: {
-                type: 'LineString',
-                coordinates: [],
-              },
+              distance: 5000,
+              duration: 900,
+              geometry: {},
             },
           ],
         },
@@ -51,12 +48,9 @@ describe('OsrmClient', () => {
     );
 
     await expect(client.getRoute(request)).resolves.toEqual({
-      distanceMeter: 4200,
-      durationSecond: 780,
-      geometry: {
-        type: 'LineString',
-        coordinates: [],
-      },
+      distanceMeter: 5000,
+      durationSecond: 900,
+      geometry: {},
     });
 
     expect(configService.get).toHaveBeenCalledWith('OSRM_BASE_URL');

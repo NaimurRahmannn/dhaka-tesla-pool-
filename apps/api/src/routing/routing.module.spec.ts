@@ -1,5 +1,7 @@
 import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
+import { ROUTING_CLIENT } from './routing.constants.js';
+import { OsrmClient } from './osrm.client.js';
 import { RoutingModule } from './routing.module.js';
 import { RoutingService } from './routing.service.js';
 
@@ -16,6 +18,7 @@ describe('RoutingModule', () => {
     }).compile();
 
     expect(module.get(RoutingService)).toBeInstanceOf(RoutingService);
+    expect(module.get(ROUTING_CLIENT)).toBe(module.get(OsrmClient));
 
     await module.close();
   });

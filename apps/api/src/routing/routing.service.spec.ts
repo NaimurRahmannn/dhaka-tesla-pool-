@@ -4,14 +4,11 @@ import type { RoutingClient } from './interfaces/routing-client.interface.js';
 import { RouteRequestDto } from './dto/route-request.dto.js';
 
 describe('RoutingService', () => {
-  it('returns a provider-neutral route result from the routing client', async () => {
+  it('depends on RoutingClient and returns its provider-neutral route result', async () => {
     const routeResult: RouteResult = {
-      distanceMeter: 4200,
-      durationSecond: 780,
-      geometry: {
-        type: 'LineString',
-        coordinates: [],
-      },
+      distanceMeter: 5000,
+      durationSecond: 900,
+      geometry: {},
     };
     const client: RoutingClient = {
       getRoute: vi.fn().mockResolvedValue(routeResult),
