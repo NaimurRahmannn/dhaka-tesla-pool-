@@ -4,9 +4,76 @@ Dhaka Tesla Pool is a ride-pooling MVP foundation for sharing a three-seat Tesla
 
 ## Current Status
 
-Repository foundation and database layer completed.
+The backend currently includes:
 
-The repository currently contains the monorepo setup, Next.js web scaffold, NestJS API scaffold, PostgreSQL development container, and database foundation. Product features will be added as development continues.
+- Authentication with JWT and role authorization.
+- Routing service integration through OSRM.
+- Fare engine using integer paisa.
+- Passenger ride request workflow.
+- Ride lifecycle management with status history.
+- Pool matching engine.
+- Pool creation workflow.
+- Transactional seat allocation.
+- Pool lifecycle management.
+
+The repository also includes the monorepo setup, Next.js web scaffold, NestJS API, PostgreSQL development container, Prisma migrations, and deterministic seed data.
+
+## Pooling Engine
+
+The pool engine decides whether ride requests can share a vehicle.
+
+Routing provides:
+
+- distance
+- duration
+- geometry
+
+Pooling owns:
+
+- compatibility decisions
+- pool creation
+- capacity validation
+- membership creation
+
+No predefined Dhaka zones are used. The system uses OSRM route information and backend-owned matching rules.
+
+## Matching Rules
+
+Two ride requests are compatible only when all MVP rules pass:
+
+- Pickup compatibility: pickup distance must be `<= 2000` meters.
+- Destination compatibility: destination distance must be `<= 3000` meters.
+- Maximum detour: shared-route detour must be `<= 30%`.
+
+Pickup and destination distances are calculated with the Haversine formula. Detour is calculated from solo route distance and shared route distance:
+
+```text
+detourPercent = ((sharedRouteDistance - soloRouteDistance) / soloRouteDistance) * 100
+```
+
+## Shared Route Distance
+
+The pool engine does not estimate shared route distance.
+
+`RoutingService` calculates the combined route through waypoints and returns the route distance. The MVP uses deterministic waypoint ordering:
+
+```text
+pickup 1 -> pickup 2 -> destination 1 -> destination 2
+```
+
+A production system could optimize pickup and drop-off ordering, but the current implementation keeps the ordering deterministic and testable.
+
+## Concurrency
+
+Seat allocation is protected by PostgreSQL transactions.
+
+Before recalculating capacity, the backend locks the pool row:
+
+```sql
+SELECT ... FOR UPDATE
+```
+
+Without locking, two users could both see the last available seat and create memberships at the same time. With row locking, those transactions serialize, capacity is recalculated inside the transaction, and the second request is rejected if no capacity remains.
 
 ## Basic Setup
 
