@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module.js';
 import { AppController } from './app.controller.js';
@@ -7,7 +8,13 @@ import { RolesGuard } from './auth/guards/roles.guard.js';
 import { RoutingModule } from './routing/routing.module.js';
 
 @Module({
-  imports: [AuthModule, RoutingModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    AuthModule,
+    RoutingModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,

@@ -1,1 +1,2 @@
 export const ROUTING_CLIENT = Symbol('ROUTING_CLIENT');
+export const OSRM_REQUEST_TIMEOUT_MS = 5000;
