@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getAssignedPools } from "../api/driver-api";
+import { getAssignedPools, getDriverVehicles } from "../api/driver-api";
 import { DriverDashboard } from "./driver-dashboard";
 
 vi.mock("next/navigation", () => ({
@@ -23,11 +23,26 @@ vi.mock("@/features/auth", () => ({
 vi.mock("../api/driver-api", () => ({
   getAssignedPools: vi.fn(),
   updateVehicleStatus: vi.fn(),
+  getDriverVehicles: vi.fn(),
+  getAssignedRides: vi.fn().mockResolvedValue([]),
+  getNearbyRides: vi.fn().mockResolvedValue([]),
+  acceptRide: vi.fn(),
+  autoAssignClosestRide: vi.fn(),
 }));
 
 describe("DriverDashboard", () => {
   beforeEach(() => {
     vi.mocked(getAssignedPools).mockReset();
+    vi.mocked(getDriverVehicles).mockReset();
+    vi.mocked(getDriverVehicles).mockResolvedValue([
+      {
+        id: "veh-1",
+        driverId: "00000000-0000-4000-8000-000000000001",
+        name: "Bullet",
+        capacity: 3,
+        status: "OFFLINE",
+      },
+    ]);
   });
 
   it("renders driver information, vehicle status, and pool summary", async () => {

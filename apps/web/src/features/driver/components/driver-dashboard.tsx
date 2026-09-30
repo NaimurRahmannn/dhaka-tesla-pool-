@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute, useAuth } from "@/features/auth";
+import { DHAKA_HUBS, type DhakaHub } from "@/features/passenger/utils/format-location";
+import { useAssignedRides } from "../hooks/use-assigned-rides";
 import { useDriverPools } from "../hooks/use-driver-pools";
+import { useNearbyRides } from "../hooks/use-nearby-rides";
+import type { VehicleStatus } from "../types/driver.types";
+import { AssignedRidesCard } from "./assigned-rides-card";
+import { DriverLocationSelector } from "./driver-location-selector";
+import { NearbyRidesSection } from "./nearby-rides-section";
 import { PoolCard } from "./pool-card";
 import { VehicleStatusCard } from "./vehicle-status-card";
 
@@ -19,8 +26,56 @@ export function DriverDashboard() {
 function DriverDashboardContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const { pools, isLoading, errorMessage } = useDriverPools();
+  const { pools, isLoading: isPoolsLoading, errorMessage: poolsError } = useDriverPools();
+  const [vehicleStatus, setVehicleStatus] = useState<VehicleStatus>("OFFLINE");
+  const [currentLocation, setCurrentLocation] = useState<DhakaHub>(DHAKA_HUBS[0] ?? {
+    name: "Banani (Road 11)",
+    area: "Gulshan & Banani",
+    lat: 23.7937,
+    lng: 90.4043,
+  });
   const [quickRideId, setQuickRideId] = useState("");
+
+  const {
+    assignedRides,
+    isLoading: isAssignedLoading,
+    errorMessage: assignedError,
+    actionRideId,
+    refreshAssignedRides,
+    arrive,
+    start,
+    complete,
+  } = useAssignedRides();
+
+  const isVehicleOnline = vehicleStatus === "ONLINE";
+
+  const {
+    nearbyRides,
+    isLoading: isNearbyLoading,
+    isAssigning,
+    errorMessage: nearbyError,
+    refreshNearbyRides,
+    accept,
+    autoAssign,
+  } = useNearbyRides({
+    lat: currentLocation?.lat,
+    lng: currentLocation?.lng,
+    isOnline: isVehicleOnline,
+  });
+
+  const handleLocationChange = useCallback((loc: DhakaHub) => {
+    setCurrentLocation(loc);
+  }, []);
+
+  const handleAcceptRide = async (rideId: string) => {
+    await accept(rideId);
+    await refreshAssignedRides();
+  };
+
+  const handleAutoAssign = async () => {
+    await autoAssign();
+    await refreshAssignedRides();
+  };
 
   const activePools = pools.filter((p) => p.status === "ACTIVE").length;
   const matchingPools = pools.filter((p) => p.status === "MATCHING").length;
@@ -56,46 +111,52 @@ function DriverDashboardContent() {
         </Link>
       </header>
 
-      {/* Driver Information Card */}
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-          Driver Information
-        </h2>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-md bg-slate-50 p-4">
-            <dt className="text-xs text-slate-500">Driver Name</dt>
-            <dd className="mt-1 text-base font-semibold text-slate-950">
-              {user?.name ?? "N/A"}
-            </dd>
-          </div>
-          <div className="rounded-md bg-slate-50 p-4">
-            <dt className="text-xs text-slate-500">Email Address</dt>
-            <dd className="mt-1 truncate text-base font-semibold text-slate-950">
-              {user?.email ?? "N/A"}
-            </dd>
-          </div>
-          <div className="rounded-md bg-slate-50 p-4">
-            <dt className="text-xs text-slate-500">Role</dt>
-            <dd className="mt-1">
-              <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-                {user?.role ?? "DRIVER"}
-              </span>
-            </dd>
-          </div>
-        </dl>
+      {/* Driver Location Selector */}
+      <section>
+        <DriverLocationSelector onLocationChange={handleLocationChange} />
       </section>
 
       {/* Vehicle Status Card */}
       <section>
         <VehicleStatusCard
-          vehicleId={pools[0]?.vehicleId ?? "00000000-0000-4000-8000-000000000010"}
+          vehicleId={pools[0]?.vehicleId}
+          onStatusChange={setVehicleStatus}
+        />
+      </section>
+
+      {/* Active Assigned Rides Card (Automatic Ride Management) */}
+      <section>
+        <AssignedRidesCard
+          assignedRides={assignedRides}
+          isLoading={isAssignedLoading}
+          actionRideId={actionRideId}
+          errorMessage={assignedError}
+          onArrive={arrive}
+          onStart={start}
+          onComplete={complete}
+          onRefresh={refreshAssignedRides}
+        />
+      </section>
+
+      {/* Live Nearby Dispatch Feed with Proximity Filtering & Auto-Assign */}
+      <section>
+        <NearbyRidesSection
+          nearbyRides={nearbyRides}
+          isLoading={isNearbyLoading}
+          isAssigning={isAssigning}
+          isOnline={isVehicleOnline}
+          currentLocationName={currentLocation.name}
+          errorMessage={nearbyError}
+          onAccept={handleAcceptRide}
+          onAutoAssign={handleAutoAssign}
+          onRefresh={refreshNearbyRides}
         />
       </section>
 
       {/* Quick Ride Action Finder */}
       <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-          Manage Assigned Ride
+          Manual Ride Lookup (Optional)
         </h2>
         <form
           onSubmit={handleNavigateToRide}
@@ -103,7 +164,7 @@ function DriverDashboardContent() {
         >
           <input
             type="text"
-            placeholder="Enter Ride ID (e.g. UUID)"
+            placeholder="Enter Ride ID (e.g. UUID) if needed"
             className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
             value={quickRideId}
             onChange={(e) => setQuickRideId(e.target.value)}
@@ -148,17 +209,17 @@ function DriverDashboardContent() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isPoolsLoading ? (
           <p className="text-sm text-slate-600">Loading assigned pools...</p>
         ) : null}
 
-        {errorMessage ? (
+        {poolsError ? (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {errorMessage}
+            {poolsError}
           </p>
         ) : null}
 
-        {!isLoading && !errorMessage && pools.length === 0 ? (
+        {!isPoolsLoading && !poolsError && pools.length === 0 ? (
           <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
             No pools assigned to this driver yet.
           </div>
