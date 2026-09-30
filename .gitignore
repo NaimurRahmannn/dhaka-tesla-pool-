@@ -1,6 +1,5 @@
 .venv/
 .env
-agent-context/
 node_modules/
 .next/
 dist/
