@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/features/auth";
 import { formatFare } from "@/features/passenger/utils/format-fare";
+import { formatLocationName } from "@/features/passenger/utils/format-location";
 import { useRide } from "../hooks/use-ride";
 import { RideStatus } from "./ride-status";
 
@@ -89,17 +90,17 @@ function RideDetailsContent({ rideId }: { rideId: string }) {
             </div>
             {ride.pickupLat !== undefined && ride.pickupLng !== undefined ? (
               <div className="flex justify-between gap-4 border-t border-slate-100 pt-3">
-                <dt>Pickup coordinates</dt>
-                <dd className="font-mono text-slate-900">
-                  {Number(ride.pickupLat).toFixed(6)}, {Number(ride.pickupLng).toFixed(6)}
+                <dt>Pickup location</dt>
+                <dd className="font-medium text-slate-900">
+                  {formatLocationName(ride.pickupLat, ride.pickupLng)}
                 </dd>
               </div>
             ) : null}
             {ride.destinationLat !== undefined && ride.destinationLng !== undefined ? (
               <div className="flex justify-between gap-4 border-t border-slate-100 pt-3">
-                <dt>Destination coordinates</dt>
-                <dd className="font-mono text-slate-900">
-                  {Number(ride.destinationLat).toFixed(6)}, {Number(ride.destinationLng).toFixed(6)}
+                <dt>Destination location</dt>
+                <dd className="font-medium text-slate-900">
+                  {formatLocationName(ride.destinationLat, ride.destinationLng)}
                 </dd>
               </div>
             ) : null}

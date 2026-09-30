@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatFare } from "@/features/passenger/utils/format-fare";
+import { formatLocationName } from "@/features/passenger/utils/format-location";
 import { RideStatus } from "./ride-status";
 import type { Ride } from "../types/passenger.types";
 
@@ -31,16 +32,16 @@ export function RideCard({ ride }: { ride: Ride }) {
         {ride.pickupLat !== undefined && ride.pickupLng !== undefined ? (
           <div className="flex justify-between gap-4 text-xs text-slate-500">
             <dt>Pickup</dt>
-            <dd className="font-mono">
-              {Number(ride.pickupLat).toFixed(4)}, {Number(ride.pickupLng).toFixed(4)}
+            <dd className="font-medium text-slate-700">
+              {formatLocationName(ride.pickupLat, ride.pickupLng)}
             </dd>
           </div>
         ) : null}
         {ride.destinationLat !== undefined && ride.destinationLng !== undefined ? (
           <div className="flex justify-between gap-4 text-xs text-slate-500">
             <dt>Destination</dt>
-            <dd className="font-mono">
-              {Number(ride.destinationLat).toFixed(4)}, {Number(ride.destinationLng).toFixed(4)}
+            <dd className="font-medium text-slate-700">
+              {formatLocationName(ride.destinationLat, ride.destinationLng)}
             </dd>
           </div>
         ) : null}
