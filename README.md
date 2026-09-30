@@ -15,6 +15,7 @@ The backend currently includes:
 - Pool creation workflow.
 - Transactional seat allocation.
 - Pool lifecycle management.
+- Driver vehicle availability, assigned pool retrieval, and ride lifecycle actions.
 
 The repository also includes the monorepo setup, Next.js web scaffold, NestJS API, PostgreSQL development container, Prisma migrations, and deterministic seed data.
 
@@ -74,6 +75,20 @@ SELECT ... FOR UPDATE
 ```
 
 Without locking, two users could both see the last available seat and create memberships at the same time. With row locking, those transactions serialize, capacity is recalculated inside the transaction, and the second request is rejected if no capacity remains.
+
+## Driver Workflow
+
+Driver endpoints require JWT authentication and the `DRIVER` role. Driver identity comes from the authenticated user, not request bodies or query parameters.
+
+Implemented driver endpoints:
+
+- `GET /driver/pools`: returns pools assigned to vehicles owned by the authenticated driver.
+- `PATCH /driver/vehicles/:id/status`: updates one of the driver's own vehicles to `ONLINE` or `OFFLINE`.
+- `PATCH /driver/rides/:id/arrive`: transitions an assigned ride from `MATCHED` to `DRIVER_ARRIVED`.
+- `PATCH /driver/rides/:id/start`: transitions an assigned ride from `DRIVER_ARRIVED` to `STARTED`.
+- `PATCH /driver/rides/:id/complete`: transitions an assigned ride from `STARTED` to `COMPLETED`.
+
+Driver ride lifecycle actions verify that the ride is assigned through a pool to a vehicle owned by the authenticated driver. The assigned vehicle must be `ONLINE`. Ride status changes use the ride transition service, and completing the last ride in an active pool completes the pool through the pool transition service.
 
 ## Basic Setup
 
