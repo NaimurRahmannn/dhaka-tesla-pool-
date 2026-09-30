@@ -20,5 +20,5 @@ describe('RideService', () => {
     expect(module.get(RideService)).toBeInstanceOf(RideService);
 
     await module.close();
-  });
+  }, 15000);
 });

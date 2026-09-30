@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -22,6 +32,74 @@ export class DriverController {
   @Roles(UserRole.DRIVER)
   getAssignedPools(@CurrentUser() user: PublicUser) {
     return this.driverPoolService.getAssignedPools(user.id);
+  }
+
+  @Get('vehicles')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.DRIVER)
+  getVehicles(@CurrentUser() user: PublicUser) {
+    return this.driverVehicleService.getDriverVehicles(user.id);
+  }
+
+  @Get('rides/assigned')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.DRIVER)
+  getAssignedRides(@CurrentUser() user: PublicUser) {
+    return this.driverRideService.getAssignedRides(user.id);
+  }
+
+  @Get('rides/nearby')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.DRIVER)
+  getNearbyRides(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('radius') radius: string | undefined,
+    @CurrentUser() user: PublicUser,
+  ) {
+    const parsedLat = Number(lat);
+    const parsedLng = Number(lng);
+    const parsedRadius = radius ? Number(radius) : 3000;
+
+    if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng)) {
+      throw new BadRequestException('Valid lat and lng query parameters are required');
+    }
+
+    return this.driverRideService.getNearbyRides(
+      user.id,
+      parsedLat,
+      parsedLng,
+      parsedRadius,
+    );
+  }
+
+  @Post('rides/auto-assign')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.DRIVER)
+  autoAssign(
+    @Body() dto: { lat: number; lng: number; radius?: number },
+    @CurrentUser() user: PublicUser,
+  ) {
+    if (typeof dto?.lat !== 'number' || typeof dto?.lng !== 'number') {
+      throw new BadRequestException('Valid lat and lng in body are required');
+    }
+
+    return this.driverRideService.autoAssignClosestRide(
+      user.id,
+      dto.lat,
+      dto.lng,
+      dto.radius ?? 3000,
+    );
+  }
+
+  @Post('rides/:id/accept')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.DRIVER)
+  acceptRide(
+    @Param('id') rideId: string,
+    @CurrentUser() user: PublicUser,
+  ) {
+    return this.driverRideService.acceptRide(user.id, rideId);
   }
 
   @Patch('rides/:id/arrive')

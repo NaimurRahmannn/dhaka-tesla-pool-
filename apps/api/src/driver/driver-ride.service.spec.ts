@@ -8,10 +8,15 @@ import {
   RideStatus,
   VehicleStatus,
 } from '../generated/prisma/client.js';
+import { PoolCreationService } from '../pool/pool-creation.service.js';
+import { PoolSeatAllocationService } from '../pool/pool-seat-allocation.service.js';
 import { PoolTransitionService } from '../pool/pool-transition.service.js';
 import { RideTransitionService } from '../ride/ride-transition.service.js';
 import { PrismaService } from '../users/prisma.service.js';
-import { DriverRideService } from './driver-ride.service.js';
+import {
+  calculateHaversineDistanceMeter,
+  DriverRideService,
+} from './driver-ride.service.js';
 
 type AssignedRideRecord = {
   id: string;
@@ -125,6 +130,16 @@ function createService({
         return result;
       },
     ),
+    rideRequest: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    vehicle: {
+      findFirst: vi.fn(),
+    },
+    pool: {
+      findFirst: vi.fn(),
+    },
   } as unknown as PrismaService;
   const rideTransitionService = {
     transitionRideStatus: vi.fn(
@@ -182,15 +197,26 @@ function createService({
       },
     ),
   } as unknown as PoolTransitionService;
+  const poolCreationService = {
+    createPool: vi.fn(),
+  } as unknown as PoolCreationService;
+  const poolSeatAllocationService = {
+    joinPool: vi.fn(),
+  } as unknown as PoolSeatAllocationService;
 
   return {
     committed,
+    prisma,
     poolTransitionService,
     rideTransitionService,
+    poolCreationService,
+    poolSeatAllocationService,
     service: new DriverRideService(
       prisma,
       rideTransitionService,
       poolTransitionService,
+      poolCreationService,
+      poolSeatAllocationService,
     ),
   };
 }
@@ -460,5 +486,155 @@ describe('DriverRideService', () => {
         RideStatus.DRIVER_ARRIVED,
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  describe('calculateHaversineDistanceMeter', () => {
+    it('calculates accurate distance in meters between Dhaka coordinates', () => {
+      // Old Dhaka (Lalbagh) to Banani (Road 11) is approx 8.4 km
+      const oldDhakaLat = 23.7196;
+      const oldDhakaLng = 90.3881;
+      const bananiLat = 23.7937;
+      const bananiLng = 90.4043;
+
+      const distanceToBanani = calculateHaversineDistanceMeter(
+        oldDhakaLat,
+        oldDhakaLng,
+        bananiLat,
+        bananiLng,
+      );
+
+      // Distance should exceed 8 km and exceed 3 km threshold
+      expect(distanceToBanani).toBeGreaterThan(8000);
+      expect(distanceToBanani).toBeLessThan(9000);
+
+      // Banani to Gulshan 2 is ~400 meters
+      const gulshanLat = 23.7925;
+      const gulshanLng = 90.4078;
+      const distanceToGulshan = calculateHaversineDistanceMeter(
+        bananiLat,
+        bananiLng,
+        gulshanLat,
+        gulshanLng,
+      );
+
+      expect(distanceToGulshan).toBeLessThan(500);
+      expect(distanceToGulshan).toBeGreaterThan(300);
+    });
+  });
+
+  describe('getNearbyRides', () => {
+    it('filters rides by distance radius and sorts closest first', async () => {
+      const { service, prisma } = createService();
+
+      vi.mocked(prisma.rideRequest.findMany).mockResolvedValue([
+        {
+          id: 'ride-far',
+          passengerId: 'p-1',
+          passenger: { name: 'Far Passenger' },
+          pickupLat: 23.7196, // Old Dhaka
+          pickupLng: 90.3881,
+          destinationLat: 23.733,
+          destinationLng: 90.4172,
+          status: RideStatus.REQUESTED,
+          requestedSeats: 1,
+          estimatedFarePaisa: 50000,
+          createdAt: new Date(),
+        },
+        {
+          id: 'ride-near',
+          passengerId: 'p-2',
+          passenger: { name: 'Near Passenger' },
+          pickupLat: 23.7925, // Gulshan (~400m from Banani)
+          pickupLng: 90.4078,
+          destinationLat: 23.733,
+          destinationLng: 90.4172,
+          status: RideStatus.REQUESTED,
+          requestedSeats: 1,
+          estimatedFarePaisa: 35000,
+          createdAt: new Date(),
+        },
+      ]);
+
+      // Driver is in Banani
+      const bananiLat = 23.7937;
+      const bananiLng = 90.4043;
+
+      const nearby = await service.getNearbyRides('driver-id', bananiLat, bananiLng, 3000);
+
+      // Far ride in Old Dhaka should be filtered out! Only near ride in Gulshan should remain
+      expect(nearby).toHaveLength(1);
+      expect(nearby[0].id).toBe('ride-near');
+      expect(nearby[0].distanceMeter).toBeLessThan(500);
+    });
+  });
+
+  describe('acceptRide and autoAssignClosestRide', () => {
+    it('creates a new pool if no active pool exists when accepting a ride', async () => {
+      const { service, prisma, poolCreationService } = createService();
+
+      vi.mocked(prisma.rideRequest.findUnique).mockResolvedValue({
+        id: 'ride-1',
+        passengerId: 'p-1',
+        status: RideStatus.REQUESTED,
+        requestedSeats: 1,
+        poolMember: null,
+      });
+
+      vi.mocked(prisma.vehicle.findFirst).mockResolvedValue({
+        id: 'vehicle-1',
+        driverId: 'driver-1',
+        status: VehicleStatus.ONLINE,
+      });
+
+      vi.mocked(prisma.pool.findFirst).mockResolvedValue(null);
+
+      const result = await service.acceptRide('driver-1', 'ride-1');
+
+      expect(result).toEqual({ id: 'ride-1', status: RideStatus.MATCHED });
+      expect(poolCreationService.createPool).toHaveBeenCalledWith('vehicle-1', ['ride-1']);
+    });
+
+    it('auto-assigns closest available ride within pickup radius', async () => {
+      const { service } = createService();
+      const getNearbySpy = vi.spyOn(service, 'getNearbyRides').mockResolvedValue([
+        {
+          id: 'closest-ride',
+          passengerId: 'p-1',
+          passengerName: 'Passenger 1',
+          pickupLat: 23.7925,
+          pickupLng: 90.4078,
+          destinationLat: 23.733,
+          destinationLng: 90.4172,
+          status: RideStatus.REQUESTED,
+          requestedSeats: 1,
+          estimatedFarePaisa: 35000,
+          distanceMeter: 380,
+          createdAt: new Date(),
+        },
+      ]);
+      const acceptSpy = vi.spyOn(service, 'acceptRide').mockResolvedValue({
+        id: 'closest-ride',
+        status: RideStatus.MATCHED,
+      });
+
+      const result = await service.autoAssignClosestRide('driver-1', 23.7937, 90.4043, 3000);
+
+      expect(result).toEqual({
+        id: 'closest-ride',
+        status: RideStatus.MATCHED,
+        distanceMeter: 380,
+      });
+      expect(getNearbySpy).toHaveBeenCalledWith('driver-1', 23.7937, 90.4043, 3000);
+      expect(acceptSpy).toHaveBeenCalledWith('driver-1', 'closest-ride');
+    });
+
+    it('throws NotFoundException if no nearby rides are available for auto-assign', async () => {
+      const { service } = createService();
+      vi.spyOn(service, 'getNearbyRides').mockResolvedValue([]);
+
+      await expect(
+        service.autoAssignClosestRide('driver-1', 23.7196, 90.3881, 3000),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 });
