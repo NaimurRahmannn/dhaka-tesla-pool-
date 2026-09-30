@@ -19,7 +19,7 @@ const routes = [
   {
     href: "/driver",
     label: "Driver",
-    description: "Driver workflow boundary placeholder.",
+    description: "Driver workspace for managing vehicle status and assigned pools.",
   },
 ];
 
