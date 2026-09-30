@@ -148,6 +148,63 @@ export class DriverRideService {
     }));
   }
 
+  async getCompletedRides(driverId: string): Promise<AssignedDriverRide[]> {
+    const rides = await this.prisma.rideRequest.findMany({
+      where: {
+        poolMember: {
+          pool: {
+            vehicle: {
+              driverId,
+            },
+          },
+        },
+        status: RideStatus.COMPLETED,
+      },
+      select: {
+        id: true,
+        passengerId: true,
+        passenger: {
+          select: {
+            name: true,
+          },
+        },
+        pickupLat: true,
+        pickupLng: true,
+        destinationLat: true,
+        destinationLng: true,
+        status: true,
+        requestedSeats: true,
+        estimatedFarePaisa: true,
+        createdAt: true,
+        poolMember: {
+          select: {
+            poolId: true,
+            farePaisa: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      take: 10,
+    });
+
+    return rides.map((ride) => ({
+      id: ride.id,
+      passengerId: ride.passengerId,
+      passengerName: ride.passenger.name,
+      pickupLat: Number(ride.pickupLat),
+      pickupLng: Number(ride.pickupLng),
+      destinationLat: Number(ride.destinationLat),
+      destinationLng: Number(ride.destinationLng),
+      status: ride.status,
+      requestedSeats: ride.requestedSeats,
+      farePaisa: ride.poolMember?.farePaisa ?? ride.estimatedFarePaisa ?? 0,
+      poolId: ride.poolMember?.poolId ?? '',
+      createdAt: ride.createdAt,
+    }));
+  }
+
   async getNearbyRides(
     _driverId: string,
     lat: number,
@@ -254,6 +311,17 @@ export class DriverRideService {
       },
     });
 
+    if (
+      activePool &&
+      (await this.completePoolIfAllRidesCompleted(activePool.id))
+    ) {
+      await this.poolCreationService.createPool(vehicle.id, [rideId]);
+      return {
+        id: ride.id,
+        status: RideStatus.MATCHED,
+      };
+    }
+
     if (!activePool) {
       await this.poolCreationService.createPool(vehicle.id, [rideId]);
       return {
@@ -311,6 +379,7 @@ export class DriverRideService {
               pool: {
                 select: {
                   id: true,
+                  status: true,
                   vehicle: {
                     select: {
                       driverId: true,
@@ -342,6 +411,17 @@ export class DriverRideService {
         driverId,
         tx,
       );
+
+      if (
+        nextStatus === RideStatus.STARTED &&
+        ride.poolMember.pool.status === PoolStatus.MATCHING
+      ) {
+        await this.poolTransitionService.transitionPoolStatus(
+          ride.poolMember.pool.id,
+          PoolStatus.ACTIVE,
+          tx,
+        );
+      }
 
       if (nextStatus === RideStatus.COMPLETED) {
         await this.completePoolIfAllAssignedRidesCompleted(
@@ -375,7 +455,10 @@ export class DriverRideService {
       },
     });
 
-    if (!pool || pool.status !== PoolStatus.ACTIVE) {
+    if (
+      !pool ||
+      (pool.status !== PoolStatus.MATCHING && pool.status !== PoolStatus.ACTIVE)
+    ) {
       return;
     }
 
@@ -387,10 +470,68 @@ export class DriverRideService {
       return;
     }
 
+    if (pool.status === PoolStatus.MATCHING) {
+      await this.poolTransitionService.transitionPoolStatus(
+        pool.id,
+        PoolStatus.ACTIVE,
+        tx,
+      );
+    }
+
     await this.poolTransitionService.transitionPoolStatus(
       pool.id,
       PoolStatus.COMPLETED,
       tx,
     );
+  }
+
+  private async completePoolIfAllRidesCompleted(poolId: string): Promise<boolean> {
+    const pool = await this.prisma.pool.findUnique({
+      where: { id: poolId },
+      select: {
+        id: true,
+        status: true,
+        members: {
+          select: {
+            rideRequest: {
+              select: {
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (
+      !pool ||
+      (pool.status !== PoolStatus.MATCHING && pool.status !== PoolStatus.ACTIVE)
+    ) {
+      return false;
+    }
+
+    const allRidesCompleted =
+      pool.members.length > 0 &&
+      pool.members.every(
+        (member) => member.rideRequest.status === RideStatus.COMPLETED,
+      );
+
+    if (!allRidesCompleted) {
+      return false;
+    }
+
+    if (pool.status === PoolStatus.MATCHING) {
+      await this.poolTransitionService.transitionPoolStatus(
+        pool.id,
+        PoolStatus.ACTIVE,
+      );
+    }
+
+    await this.poolTransitionService.transitionPoolStatus(
+      pool.id,
+      PoolStatus.COMPLETED,
+    );
+
+    return true;
   }
 }

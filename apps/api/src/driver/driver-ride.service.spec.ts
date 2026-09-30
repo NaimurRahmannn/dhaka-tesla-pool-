@@ -83,6 +83,7 @@ function createService({
               ? {
                   pool: {
                     id: ride.poolId,
+                    status: staged.pool.status,
                     vehicle: {
                       driverId: ride.vehicleDriverId,
                       status: ride.vehicleStatus ?? VehicleStatus.ONLINE,
@@ -139,6 +140,23 @@ function createService({
     },
     pool: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
+        if (committed.pool.id !== where.id) {
+          return null;
+        }
+
+        return {
+          id: committed.pool.id,
+          status: committed.pool.status,
+          members: committed.rides
+            .filter(({ poolId }) => poolId === where.id)
+            .map((ride) => ({
+              rideRequest: {
+                status: ride.status,
+              },
+            })),
+        };
+      }),
     },
   } as unknown as PrismaService;
   const rideTransitionService = {
@@ -306,6 +324,43 @@ describe('DriverRideService', () => {
     });
   });
 
+  it('activates a matching pool when the driver starts an assigned ride', async () => {
+    const { committed, poolTransitionService, service } = createService({
+      initialState: createDefaultState({
+        pool: {
+          id: 'pool-id',
+          status: PoolStatus.MATCHING,
+        },
+        rides: [
+          {
+            id: 'ride-id',
+            poolId: 'pool-id',
+            status: RideStatus.DRIVER_ARRIVED,
+            vehicleDriverId: 'jashim-id',
+          },
+        ],
+      }),
+    });
+
+    await expect(
+      service.transitionAssignedRide(
+        'jashim-id',
+        'ride-id',
+        RideStatus.STARTED,
+      ),
+    ).resolves.toEqual({
+      id: 'ride-id',
+      status: RideStatus.STARTED,
+    });
+
+    expect(committed.pool.status).toBe(PoolStatus.ACTIVE);
+    expect(poolTransitionService.transitionPoolStatus).toHaveBeenCalledWith(
+      'pool-id',
+      PoolStatus.ACTIVE,
+      expect.any(Object),
+    );
+  });
+
   it('allows a driver to complete an assigned ride', async () => {
     const { service } = createService();
 
@@ -354,6 +409,46 @@ describe('DriverRideService', () => {
     expect(committed.rides[0]?.status).toBe(RideStatus.COMPLETED);
     expect(committed.pool.status).toBe(PoolStatus.COMPLETED);
     expect(poolTransitionService.transitionPoolStatus).toHaveBeenCalledWith(
+      'pool-id',
+      PoolStatus.COMPLETED,
+      expect.any(Object),
+    );
+  });
+
+  it('closes a stale matching pool when all assigned rides are completed', async () => {
+    const { committed, poolTransitionService, service } = createService({
+      initialState: createDefaultState({
+        pool: {
+          id: 'pool-id',
+          status: PoolStatus.MATCHING,
+        },
+        rides: [
+          {
+            id: 'ride-id',
+            poolId: 'pool-id',
+            status: RideStatus.STARTED,
+            vehicleDriverId: 'jashim-id',
+          },
+        ],
+      }),
+    });
+
+    await service.transitionAssignedRide(
+      'jashim-id',
+      'ride-id',
+      RideStatus.COMPLETED,
+    );
+
+    expect(committed.rides[0]?.status).toBe(RideStatus.COMPLETED);
+    expect(committed.pool.status).toBe(PoolStatus.COMPLETED);
+    expect(poolTransitionService.transitionPoolStatus).toHaveBeenNthCalledWith(
+      1,
+      'pool-id',
+      PoolStatus.ACTIVE,
+      expect.any(Object),
+    );
+    expect(poolTransitionService.transitionPoolStatus).toHaveBeenNthCalledWith(
+      2,
       'pool-id',
       PoolStatus.COMPLETED,
       expect.any(Object),
@@ -568,6 +663,57 @@ describe('DriverRideService', () => {
     });
   });
 
+  describe('getCompletedRides', () => {
+    it('returns completed rides for the authenticated driver', async () => {
+      const { service, prisma } = createService();
+      const completedAt = new Date();
+
+      vi.mocked(prisma.rideRequest.findMany).mockResolvedValue([
+        {
+          id: 'completed-ride',
+          passengerId: 'p-1',
+          passenger: { name: 'Nusrat' },
+          pickupLat: 23.7937,
+          pickupLng: 90.4043,
+          destinationLat: 23.733,
+          destinationLng: 90.4172,
+          status: RideStatus.COMPLETED,
+          requestedSeats: 1,
+          estimatedFarePaisa: 35000,
+          createdAt: completedAt,
+          poolMember: {
+            poolId: 'pool-id',
+            farePaisa: 30000,
+          },
+        },
+      ]);
+
+      await expect(service.getCompletedRides('driver-id')).resolves.toEqual([
+        {
+          id: 'completed-ride',
+          passengerId: 'p-1',
+          passengerName: 'Nusrat',
+          pickupLat: 23.7937,
+          pickupLng: 90.4043,
+          destinationLat: 23.733,
+          destinationLng: 90.4172,
+          status: RideStatus.COMPLETED,
+          requestedSeats: 1,
+          farePaisa: 30000,
+          poolId: 'pool-id',
+          createdAt: completedAt,
+        },
+      ]);
+      expect(prisma.rideRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: RideStatus.COMPLETED,
+          }),
+        }),
+      );
+    });
+  });
+
   describe('acceptRide and autoAssignClosestRide', () => {
     it('creates a new pool if no active pool exists when accepting a ride', async () => {
       const { service, prisma, poolCreationService } = createService();
@@ -591,6 +737,65 @@ describe('DriverRideService', () => {
       const result = await service.acceptRide('driver-1', 'ride-1');
 
       expect(result).toEqual({ id: 'ride-1', status: RideStatus.MATCHED });
+      expect(poolCreationService.createPool).toHaveBeenCalledWith('vehicle-1', ['ride-1']);
+    });
+
+    it('closes a stale completed pool before accepting a new ride', async () => {
+      const {
+        service,
+        prisma,
+        poolCreationService,
+        poolTransitionService,
+      } = createService({
+        initialState: createDefaultState({
+          pool: {
+            id: 'pool-id',
+            status: PoolStatus.MATCHING,
+          },
+          rides: [
+            {
+              id: 'old-ride',
+              poolId: 'pool-id',
+              status: RideStatus.COMPLETED,
+              vehicleDriverId: 'driver-1',
+            },
+          ],
+        }),
+      });
+
+      vi.mocked(prisma.rideRequest.findUnique).mockResolvedValue({
+        id: 'ride-1',
+        passengerId: 'p-1',
+        status: RideStatus.REQUESTED,
+        requestedSeats: 1,
+        poolMember: null,
+      });
+
+      vi.mocked(prisma.vehicle.findFirst).mockResolvedValue({
+        id: 'vehicle-1',
+        driverId: 'driver-1',
+        status: VehicleStatus.ONLINE,
+      });
+
+      vi.mocked(prisma.pool.findFirst).mockResolvedValue({
+        id: 'pool-id',
+        vehicleId: 'vehicle-1',
+        status: PoolStatus.MATCHING,
+      });
+
+      const result = await service.acceptRide('driver-1', 'ride-1');
+
+      expect(result).toEqual({ id: 'ride-1', status: RideStatus.MATCHED });
+      expect(poolTransitionService.transitionPoolStatus).toHaveBeenNthCalledWith(
+        1,
+        'pool-id',
+        PoolStatus.ACTIVE,
+      );
+      expect(poolTransitionService.transitionPoolStatus).toHaveBeenNthCalledWith(
+        2,
+        'pool-id',
+        PoolStatus.COMPLETED,
+      );
       expect(poolCreationService.createPool).toHaveBeenCalledWith('vehicle-1', ['ride-1']);
     });
 
