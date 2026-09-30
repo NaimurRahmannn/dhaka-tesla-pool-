@@ -4,7 +4,12 @@ const routes = [
   {
     href: "/login",
     label: "Login",
-    description: "Authentication entry point placeholder.",
+    description: "Sign in with an existing passenger or driver account.",
+  },
+  {
+    href: "/register",
+    label: "Register",
+    description: "Create a passenger or driver account.",
   },
   {
     href: "/passenger",
@@ -35,7 +40,7 @@ export default function Home() {
         </p>
       </section>
 
-      <nav className="grid gap-4 sm:grid-cols-3" aria-label="Application areas">
+      <nav className="grid gap-4 sm:grid-cols-2" aria-label="Application areas">
         {routes.map((route) => (
           <Link
             key={route.href}
