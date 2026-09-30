@@ -5,6 +5,7 @@ import { ProtectedRoute } from "./protected-route";
 const mocks = vi.hoisted(() => ({
   authState: {
     isAuthenticated: false,
+    user: null as { role: "PASSENGER" | "DRIVER" } | null,
   },
   replace: vi.fn(),
 }));
@@ -22,6 +23,7 @@ vi.mock("../hooks/use-auth", () => ({
 describe("ProtectedRoute", () => {
   beforeEach(() => {
     mocks.authState.isAuthenticated = false;
+    mocks.authState.user = null;
     mocks.replace.mockReset();
   });
 
@@ -48,6 +50,40 @@ describe("ProtectedRoute", () => {
     );
 
     expect(screen.getByText("Protected content")).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("redirects authenticated users with the wrong role", async () => {
+    mocks.authState.isAuthenticated = true;
+    mocks.authState.user = {
+      role: "DRIVER",
+    };
+
+    render(
+      <ProtectedRoute requiredRole="PASSENGER">
+        <p>Passenger content</p>
+      </ProtectedRoute>,
+    );
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith("/driver");
+    });
+    expect(screen.queryByText("Passenger content")).not.toBeInTheDocument();
+  });
+
+  it("renders children for authenticated users with the required role", () => {
+    mocks.authState.isAuthenticated = true;
+    mocks.authState.user = {
+      role: "PASSENGER",
+    };
+
+    render(
+      <ProtectedRoute requiredRole="PASSENGER">
+        <p>Passenger content</p>
+      </ProtectedRoute>,
+    );
+
+    expect(screen.getByText("Passenger content")).toBeInTheDocument();
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 });
