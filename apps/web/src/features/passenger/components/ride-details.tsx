@@ -32,6 +32,10 @@ function RideDetailsContent({ rideId }: { rideId: string }) {
   }
 
   const canCancel = ride?.status === "REQUESTED" || ride?.status === "MATCHED";
+  const isPooled = Boolean(ride && (ride.pool || ride.poolId || ride.farePaisa));
+  const soloFare = ride?.estimatedFarePaisa ?? 0;
+  const finalFare = ride?.farePaisa ?? (isPooled ? Math.floor(soloFare * 0.8) : soloFare);
+  const poolDiscount = Math.max(0, soloFare - finalFare);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -79,10 +83,41 @@ function RideDetailsContent({ rideId }: { rideId: string }) {
 
             <dl className="grid gap-0 px-5 py-2 text-sm text-slate-700 sm:px-6">
               <DetailRow label="Status" value={ride.status} />
-              <DetailRow
-                label="Estimated fare"
-                value={formatFare(ride.estimatedFarePaisa)}
-              />
+              {isPooled ? (
+                <>
+                  <DetailRow
+                    label="Solo fare estimate"
+                    value={formatFare(soloFare)}
+                  />
+                  <div className="flex flex-col gap-1 border-t border-slate-100 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 text-emerald-700 bg-emerald-50/50 -mx-5 px-5 sm:-mx-6 sm:px-6">
+                    <dt className="font-medium flex items-center gap-1.5">
+                      <span>Pool split discount (20% savings)</span>
+                    </dt>
+                    <dd
+                      className="font-semibold text-emerald-800 sm:text-right"
+                      data-testid="pool-discount-amount"
+                    >
+                      -{formatFare(poolDiscount)}
+                    </dd>
+                  </div>
+                  <div className="flex flex-col gap-1 border-t border-emerald-200 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 bg-emerald-50 -mx-5 px-5 sm:-mx-6 sm:px-6">
+                    <dt className="font-bold text-slate-900">
+                      Your pooled fare
+                    </dt>
+                    <dd
+                      className="font-bold text-base text-emerald-800 sm:text-right"
+                      data-testid="final-pooled-fare"
+                    >
+                      {formatFare(finalFare)}
+                    </dd>
+                  </div>
+                </>
+              ) : (
+                <DetailRow
+                  label="Estimated fare"
+                  value={formatFare(ride.estimatedFarePaisa)}
+                />
+              )}
               {ride.pickupLat !== undefined && ride.pickupLng !== undefined ? (
                 <DetailRow
                   label="Pickup location"
@@ -97,6 +132,12 @@ function RideDetailsContent({ rideId }: { rideId: string }) {
                     ride.destinationLat,
                     ride.destinationLng,
                   )}
+                />
+              ) : null}
+              {isPooled ? (
+                <DetailRow
+                  label="Assigned vehicle"
+                  value={ride.pool?.vehicleName ?? "Bullet Tesla (3 seats)"}
                 />
               ) : null}
             </dl>

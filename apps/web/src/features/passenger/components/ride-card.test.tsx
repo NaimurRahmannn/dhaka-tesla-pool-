@@ -25,4 +25,33 @@ describe("RideCard", () => {
       "/passenger/rides/ride-abc-123",
     );
   });
+
+  it("renders pooled ride badge, split discount badge, and vehicle name when ride is pooled", () => {
+    const ride: Ride = {
+      id: "ride-pool-456",
+      status: "MATCHED",
+      pickupLat: 23.7806,
+      pickupLng: 90.4074,
+      destinationLat: 23.8103,
+      destinationLng: 90.4125,
+      estimatedFarePaisa: 6000,
+      farePaisa: 4800,
+      poolId: "pool-789",
+      pool: {
+        id: "pool-789",
+        status: "ACTIVE",
+        vehicleName: "Bullet Tesla",
+        capacity: 3,
+        memberCount: 2,
+      },
+    };
+
+    render(<RideCard ride={ride} />);
+
+    expect(screen.getByText("Pooled (Bullet Tesla)")).toBeInTheDocument();
+    expect(screen.getByText("Your pooled fare")).toBeInTheDocument();
+    expect(screen.getByText("BDT 48.00")).toBeInTheDocument();
+    expect(screen.getByText("20% Split")).toBeInTheDocument();
+    expect(screen.getByText("Vehicle: Bullet Tesla")).toBeInTheDocument();
+  });
 });

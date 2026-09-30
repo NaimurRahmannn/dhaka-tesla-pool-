@@ -119,6 +119,10 @@ describe("RideDetailsPage", () => {
     expect(screen.getByText("abc123")).toBeInTheDocument();
     expect(screen.getByText("ACTIVE")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("Your pooled fare")).toBeInTheDocument();
+    expect(screen.getByTestId("final-pooled-fare")).toHaveTextContent("BDT 48.00");
+    expect(screen.getByTestId("pool-discount-amount")).toHaveTextContent("-BDT 12.00");
+    expect(screen.getByText("Bullet Tesla (3 seats)")).toBeInTheDocument();
   });
 
   it("hides pool section when ride is not pooled", async () => {

@@ -24,6 +24,7 @@ export type Ride = {
   destinationLng?: number | string;
   requestedSeats?: number;
   estimatedFarePaisa?: number | null;
+  farePaisa?: number | null;
   createdAt?: string;
   updatedAt?: string;
   poolId?: string | null;
