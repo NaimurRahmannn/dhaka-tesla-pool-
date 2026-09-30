@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { ProtectedRoute } from "@/features/auth";
-import { useDriverPools } from "../hooks/use-driver-pools";
-import { PoolCard } from "./pool-card";
+import { PoolCard, usePool } from "@/features/pool";
 
 export function DriverPoolsPage() {
   return (
@@ -14,7 +13,7 @@ export function DriverPoolsPage() {
 }
 
 function DriverPoolsContent() {
-  const { pools, isLoading, errorMessage } = useDriverPools();
+  const { pools, isLoading, errorMessage } = usePool();
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -57,7 +56,12 @@ function DriverPoolsContent() {
         {pools.length > 0 ? (
           <section className="grid gap-3 sm:gap-4 sm:grid-cols-2">
             {pools.map((pool) => (
-              <PoolCard key={pool.id} pool={pool} />
+              <PoolCard
+                key={pool.id}
+                pool={pool}
+                vehicleName="Bullet Tesla"
+                capacity={3}
+              />
             ))}
           </section>
         ) : null}
