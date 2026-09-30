@@ -1,3 +1,5 @@
+import { getToken } from "./auth-storage";
+
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 export type ApiRequestOptions = {
@@ -5,6 +7,7 @@ export type ApiRequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
   accessToken?: string;
+  skipAuth?: boolean;
 };
 
 export class ApiClientError extends Error {
@@ -18,9 +21,9 @@ export class ApiClientError extends Error {
   }
 }
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
 function buildApiUrl(path: string): string {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+
   if (!apiBaseUrl) {
     throw new Error("NEXT_PUBLIC_API_URL is not configured");
   }
@@ -51,8 +54,10 @@ export async function apiRequest<TResponse>(
     headers.set("Content-Type", "application/json");
   }
 
-  if (options.accessToken) {
-    headers.set("Authorization", `Bearer ${options.accessToken}`);
+  const token = options.accessToken ?? (options.skipAuth ? null : getToken());
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(buildApiUrl(path), {
