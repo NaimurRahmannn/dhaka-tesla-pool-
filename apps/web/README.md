@@ -33,6 +33,16 @@ Set `NEXT_PUBLIC_API_URL` to the NestJS API base URL.
 - `/passenger` and `/driver` use the frontend protected-route boundary.
 - Tokens are stored in `localStorage` for the MVP; refresh tokens are not implemented.
 
+## Passenger Workflow
+
+- `/passenger`: lists rides for the authenticated passenger.
+- `/passenger/rides/new`: submits pickup and destination coordinates through `POST /rides`.
+- `/passenger/rides/[id]`: shows ride status, estimated fare when available, and cancellation for cancellable rides.
+
+Passenger pages require a `PASSENGER` user. Drivers are redirected away from passenger-only routes.
+
+The frontend uses the NestJS ride APIs through `src/features/passenger/api/passenger-api.ts`. Components do not call HTTP directly.
+
 ## Tests
 
 Run from the repository root:

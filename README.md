@@ -17,6 +17,7 @@ The application currently includes:
 - Pool lifecycle management.
 - Driver vehicle availability, assigned pool retrieval, and ride lifecycle actions.
 - Next.js frontend with authentication flow, App Router, Tailwind CSS, and typed client boundaries.
+- Passenger frontend ride workflow for creating, listing, viewing, and cancelling rides.
 
 The repository also includes the monorepo setup, NestJS API, PostgreSQL development container, Prisma migrations, and deterministic seed data.
 
@@ -40,6 +41,8 @@ Frontend routes are available for:
 - `/login`
 - `/register`
 - `/passenger`
+- `/passenger/rides/new`
+- `/passenger/rides/:id`
 - `/driver`
 
 The authentication flow uses the existing NestJS endpoints:
@@ -49,6 +52,17 @@ The authentication flow uses the existing NestJS endpoints:
 - `GET /auth/me`
 
 After login, passengers are routed to `/passenger` and drivers are routed to `/driver`. The frontend stores the MVP access token in `localStorage`; refresh tokens are not implemented.
+
+Passenger routes require an authenticated `PASSENGER` user. Drivers are redirected away from passenger-only pages.
+
+The passenger workflow uses the existing NestJS ride endpoints:
+
+- `GET /rides`
+- `POST /rides`
+- `GET /rides/:id`
+- `PATCH /rides/:id/cancel`
+
+The frontend collects pickup and destination coordinates directly. Maps, GPS, pooling UI, payments, and realtime tracking are not implemented.
 
 ## Pooling Engine
 
