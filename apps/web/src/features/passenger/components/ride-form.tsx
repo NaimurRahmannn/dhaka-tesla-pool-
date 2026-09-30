@@ -7,6 +7,7 @@ import { MapView, useMapRoute } from "@/features/map";
 import type { Coordinates } from "@/features/map";
 import { createRide } from "../api/passenger-api";
 import type { CreateRideRequest } from "../types/passenger.types";
+import { formatFare } from "../utils/format-fare";
 import {
   DHAKA_HUBS,
   DHAKA_AREAS,
@@ -89,6 +90,22 @@ export function RideForm() {
     isLoading: isRouteLoading,
     errorMessage: routeError,
   } = useMapRoute(pickupCoords, destinationCoords);
+
+  const fareEstimates = useMemo(() => {
+    if (!route) return null;
+    const distanceMeter = route.distanceMeter ?? 0;
+    const distanceKilometer = Math.ceil(distanceMeter / 1000);
+    const distanceChargePaisa = distanceKilometer * 1500;
+    const soloFarePaisa = 5000 + distanceChargePaisa;
+    const poolDiscountPaisa = Math.floor(soloFarePaisa * 0.2);
+    const pooledFarePaisa = soloFarePaisa - poolDiscountPaisa;
+    return {
+      distanceKilometer,
+      soloFarePaisa,
+      poolDiscountPaisa,
+      pooledFarePaisa,
+    };
+  }, [route]);
 
   function applyPresetRoute(shortcut: (typeof ROUTE_SHORTCUTS)[number]) {
     setForm({
@@ -282,42 +299,95 @@ export function RideForm() {
           </div>
         </div>
 
-        {/* Route Preview Panel */}
+        {/* Route & Fare Estimate Preview Panel */}
         {route ? (
           <div
             data-testid="route-preview"
-            className="flex flex-col gap-3 rounded-md border border-emerald-200 bg-emerald-50/60 p-4 text-xs text-emerald-950 sm:flex-row sm:items-center sm:justify-between"
+            className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 text-xs text-emerald-950"
           >
-            <div className="space-y-1">
-              <p className="font-semibold uppercase tracking-wider text-emerald-800">
-                Route Preview
-              </p>
-              <p className="text-slate-600">
-                Route and distance calculated via backend routing provider
-              </p>
-            </div>
-
-            <div className="flex items-center gap-6">
-              <div>
-                <span className="text-slate-500 block">Distance</span>
-                <span
-                  data-testid="route-preview-distance"
-                  className="text-base font-bold text-slate-900"
-                >
-                  {route.distanceKm} km
-                </span>
+            <div className="flex flex-col gap-3 border-b border-emerald-200/60 pb-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-0.5">
+                <p className="font-semibold uppercase tracking-wider text-emerald-800">
+                  Route Preview &amp; Fare Estimate
+                </p>
+                <p className="text-slate-600">
+                  Calculated based on real street routing (OSRM)
+                </p>
               </div>
 
-              <div>
-                <span className="text-slate-500 block">Est. Duration</span>
-                <span
-                  data-testid="route-preview-duration"
-                  className="text-base font-bold text-slate-900"
-                >
-                  {route.durationMinutes} mins
-                </span>
+              <div className="flex items-center gap-6">
+                <div>
+                  <span className="text-slate-500 block">Distance</span>
+                  <span
+                    data-testid="route-preview-distance"
+                    className="text-base font-bold text-slate-900"
+                  >
+                    {route.distanceKm} km
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-slate-500 block">Est. Duration</span>
+                  <span
+                    data-testid="route-preview-duration"
+                    className="text-base font-bold text-slate-900"
+                  >
+                    {route.durationMinutes} mins
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* Solo vs Pooled Fare Split Preview */}
+            {fareEstimates ? (
+              <div className="grid gap-3 pt-1 sm:grid-cols-2">
+                <div className="rounded-md border border-slate-200 bg-white p-3 shadow-xs">
+                  <span className="text-[11px] font-medium text-slate-500 block">
+                    Solo Ride Fare
+                  </span>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span
+                      data-testid="route-preview-solo-fare"
+                      className="text-base font-bold text-slate-800"
+                    >
+                      {formatFare(fareEstimates.soloFarePaisa)}
+                    </span>
+                    <span className="text-[11px] text-slate-400">standard rate</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Base BDT 50.00 + BDT 15.00/km ({fareEstimates.distanceKilometer} km)
+                  </p>
+                </div>
+
+                <div className="rounded-md border border-emerald-300 bg-emerald-100/70 p-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-emerald-900">
+                      Pooled Fare (20% Split Savings)
+                    </span>
+                    <span
+                      data-testid="route-preview-pool-savings"
+                      className="inline-flex items-center rounded-full bg-emerald-700 px-1.5 py-0.5 text-[10px] font-medium text-white"
+                    >
+                      Save {formatFare(fareEstimates.poolDiscountPaisa)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span
+                      data-testid="route-preview-pooled-fare"
+                      className="text-base font-bold text-emerald-800"
+                    >
+                      {formatFare(fareEstimates.pooledFarePaisa)}
+                    </span>
+                    <span className="text-[11px] font-medium text-emerald-700">
+                      in Bullet Tesla
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-emerald-800">
+                    Shared corridor ride with up to 3 riders. 20% discount applies automatically when matched.
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
