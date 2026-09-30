@@ -71,6 +71,24 @@ describe("ProtectedRoute", () => {
     expect(screen.queryByText("Passenger content")).not.toBeInTheDocument();
   });
 
+  it("redirects passengers attempting to access driver-only routes", async () => {
+    mocks.authState.isAuthenticated = true;
+    mocks.authState.user = {
+      role: "PASSENGER",
+    };
+
+    render(
+      <ProtectedRoute requiredRole="DRIVER">
+        <p>Driver content</p>
+      </ProtectedRoute>,
+    );
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith("/passenger");
+    });
+    expect(screen.queryByText("Driver content")).not.toBeInTheDocument();
+  });
+
   it("renders children for authenticated users with the required role", () => {
     mocks.authState.isAuthenticated = true;
     mocks.authState.user = {
@@ -84,6 +102,22 @@ describe("ProtectedRoute", () => {
     );
 
     expect(screen.getByText("Passenger content")).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("renders children for authenticated drivers accessing driver routes", () => {
+    mocks.authState.isAuthenticated = true;
+    mocks.authState.user = {
+      role: "DRIVER",
+    };
+
+    render(
+      <ProtectedRoute requiredRole="DRIVER">
+        <p>Driver workspace</p>
+      </ProtectedRoute>,
+    );
+
+    expect(screen.getByText("Driver workspace")).toBeInTheDocument();
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 });
