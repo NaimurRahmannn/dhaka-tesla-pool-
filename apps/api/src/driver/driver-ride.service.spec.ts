@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { RideStatus } from '../generated/prisma/client.js';
+import { RideStatus, VehicleStatus } from '../generated/prisma/client.js';
 import { RideTransitionService } from '../ride/ride-transition.service.js';
 import { PrismaService } from '../users/prisma.service.js';
 import { DriverRideService } from './driver-ride.service.js';
@@ -11,6 +11,7 @@ import { DriverRideService } from './driver-ride.service.js';
 type AssignedRideRecord = {
   id: string;
   vehicleDriverId: string | null;
+  vehicleStatus?: VehicleStatus;
 };
 
 function createService({
@@ -32,6 +33,7 @@ function createService({
             pool: {
               vehicle: {
                 driverId: ride.vehicleDriverId,
+                status: ride.vehicleStatus ?? VehicleStatus.ONLINE,
               },
             },
           }
@@ -74,6 +76,7 @@ describe('DriverRideService', () => {
       ride: {
         id: 'ride-id',
         vehicleDriverId: 'jashim-id',
+        vehicleStatus: VehicleStatus.ONLINE,
       },
     });
 
@@ -92,6 +95,25 @@ describe('DriverRideService', () => {
       RideStatus.DRIVER_ARRIVED,
       'jashim-id',
     );
+  });
+
+  it('rejects ride lifecycle actions when the assigned vehicle is offline', async () => {
+    const { rideTransitionService, service } = createService({
+      ride: {
+        id: 'ride-id',
+        vehicleDriverId: 'jashim-id',
+        vehicleStatus: VehicleStatus.OFFLINE,
+      },
+    });
+
+    await expect(
+      service.transitionAssignedRide(
+        'jashim-id',
+        'ride-id',
+        RideStatus.DRIVER_ARRIVED,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(rideTransitionService.transitionRideStatus).not.toHaveBeenCalled();
   });
 
   it('allows a driver to start an assigned ride', async () => {
