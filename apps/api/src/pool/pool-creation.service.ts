@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { CalculateFareDto } from '../fare/dto/calculate-fare.dto.js';
 import { FareService } from '../fare/fare.service.js';
-import { PoolStatus, RideStatus } from '../generated/prisma/client.js';
+import { PoolStatus, Prisma, RideStatus } from '../generated/prisma/client.js';
 import { RideTransitionService } from '../ride/ride-transition.service.js';
 import type { RouteWaypoint } from '../routing/interfaces/route-waypoint.interface.js';
 import { RoutingService } from '../routing/routing.service.js';
@@ -41,6 +41,8 @@ export class PoolCreationService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockVehicleForUpdate(tx, vehicleId);
+
       const vehicle = await tx.vehicle.findUnique({
         where: { id: vehicleId },
         select: {
@@ -51,6 +53,22 @@ export class PoolCreationService {
 
       if (!vehicle) {
         throw new NotFoundException('Vehicle not found');
+      }
+
+      const activePool = await tx.pool.findFirst({
+        where: {
+          vehicleId,
+          status: {
+            in: [PoolStatus.MATCHING, PoolStatus.ACTIVE],
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (activePool) {
+        throw new BadRequestException('Vehicle already has an active pool');
       }
 
       const rides = await tx.rideRequest.findMany({
@@ -152,6 +170,19 @@ export class PoolCreationService {
 
       return pool;
     });
+  }
+
+  private async lockVehicleForUpdate(
+    tx: Prisma.TransactionClient,
+    vehicleId: string,
+  ): Promise<void> {
+    const lockedVehicles = await tx.$queryRaw<Array<{ id: string }>>(
+      Prisma.sql`SELECT id FROM vehicles WHERE id = ${vehicleId}::uuid FOR UPDATE`,
+    );
+
+    if (lockedVehicles.length === 0) {
+      throw new NotFoundException('Vehicle not found');
+    }
   }
 
   private async assertRidesAreRouteCompatible(
