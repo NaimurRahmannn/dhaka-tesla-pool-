@@ -30,6 +30,7 @@ The frontend is organized around future workflow boundaries:
 - `src/features/auth`
 - `src/features/passenger`
 - `src/features/driver`
+- `src/features/pool`
 - `src/lib`
 - `src/hooks`
 - `src/types`
@@ -65,6 +66,12 @@ The passenger workflow uses the existing NestJS ride endpoints:
 - `GET /rides/:id`
 - `PATCH /rides/:id/cancel`
 
+When a passenger ride belongs to a pool, `/passenger/rides/:id` displays pool visibility:
+- Pool ID
+- Pool lifecycle status (`MATCHING` -> `ACTIVE` -> `COMPLETED`)
+- Pooled member count only (protecting other passengers' private data)
+When a ride is not pooled, the pool section remains hidden.
+
 The driver workflow uses the existing NestJS driver endpoints:
 
 - `GET /driver/pools`
@@ -75,7 +82,13 @@ The driver workflow uses the existing NestJS driver endpoints:
 - `PATCH /driver/rides/:id/start`
 - `PATCH /driver/rides/:id/complete`
 
-The frontend collects coordinates and executes lifecycle transitions directly. Maps, GPS, pooling UI, payments, and realtime tracking are not implemented.
+The driver pool visualization on `/driver/pools` displays improved pool cards showing:
+- Pool ID
+- Assigned vehicle information (`Bullet Tesla`)
+- Pool status and lifecycle state
+- Member count with vehicle capacity (e.g. `2/3`)
+
+The frontend collects coordinates and executes lifecycle transitions directly. Maps, GPS, live tracking, and payments are not implemented.
 
 ## Pooling Engine
 

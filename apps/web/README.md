@@ -37,7 +37,15 @@ Set `NEXT_PUBLIC_API_URL` to the NestJS API base URL.
 
 - `/passenger`: lists rides for the authenticated passenger.
 - `/passenger/rides/new`: submits pickup and destination coordinates through `POST /rides`.
-- `/passenger/rides/[id]`: shows ride status, estimated fare when available, and cancellation for cancellable rides.
+- `/passenger/rides/[id]`: shows ride status, estimated fare when available, cancellation for cancellable rides, and pooled ride visibility.
+
+### Passenger Pool Visibility
+
+When a passenger's ride belongs to a pool:
+- Displays a dedicated pool section indicating "Your ride is pooled".
+- Displays pool ID, pool status (with lifecycle progress), and member count only.
+- Private information of other passengers (names, locations, fares) is strictly kept private and hidden.
+- When a ride is not pooled, the pool section is automatically hidden.
 
 Passenger pages require a `PASSENGER` user. Drivers are redirected away from passenger-only routes.
 
@@ -52,9 +60,28 @@ The frontend uses the NestJS ride APIs through `src/features/passenger/api/passe
   - `DRIVER_ARRIVED`: Start ride (`PATCH /driver/rides/:id/start`)
   - `STARTED`: Complete ride (`PATCH /driver/rides/:id/complete`)
 
+### Driver Pool Visibility
+
+- `/driver/pools`: displays improved pool cards for each assigned pooling group.
+- Pool cards display:
+  - Pool ID
+  - Vehicle information (`Bullet Tesla`)
+  - Pool status badge and lifecycle state (`MATCHING` -> `ACTIVE` -> `COMPLETED`)
+  - Passenger member count with vehicle capacity (e.g. `2/3`)
+
 Driver pages require a `DRIVER` user. Passenger users are redirected away from driver-only routes.
 
-The frontend uses the NestJS driver APIs through `src/features/driver/api/driver-api.ts`. Components do not call HTTP directly.
+The frontend uses the NestJS driver APIs through `src/features/driver/api/driver-api.ts` and `src/features/pool/api/pool-api.ts`. Components do not call HTTP directly.
+
+## Pool Feature (`src/features/pool`)
+
+Contains the frontend pool visualization architecture:
+- `api/pool-api.ts`: isolated API communication with backend pool endpoints (`GET /driver/pools`).
+- `hooks/use-pool.ts`: fetches assigned pool data and manages loading, error, and refetch states.
+- `components/pool-card.tsx`: reusable pool card supporting both passenger and driver views.
+- `components/pool-status.tsx`: status badge and lifecycle visualizer (`MATCHING` -> `ACTIVE` -> `COMPLETED`).
+- `components/pool-members.tsx`: member count indicator that protects passenger privacy.
+- `types/pool.types.ts`: typed contracts for `Pool`, `PoolStatus`, and `PoolMember`.
 
 ## Tests
 
