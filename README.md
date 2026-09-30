@@ -4,7 +4,7 @@ Dhaka Tesla Pool is a ride-pooling MVP foundation for sharing a three-seat Tesla
 
 ## Current Status
 
-The backend currently includes:
+The application currently includes:
 
 - Authentication with JWT and role authorization.
 - Routing service integration through OSRM.
@@ -16,8 +16,30 @@ The backend currently includes:
 - Transactional seat allocation.
 - Pool lifecycle management.
 - Driver vehicle availability, assigned pool retrieval, and ride lifecycle actions.
+- Next.js frontend foundation with App Router, Tailwind CSS, and typed client boundaries.
 
-The repository also includes the monorepo setup, Next.js web scaffold, NestJS API, PostgreSQL development container, Prisma migrations, and deterministic seed data.
+The repository also includes the monorepo setup, NestJS API, PostgreSQL development container, Prisma migrations, and deterministic seed data.
+
+## Frontend Application
+
+The web app lives in `apps/web` and uses Next.js, TypeScript, the App Router, Tailwind CSS, and ESLint.
+
+The frontend is organized around future workflow boundaries:
+
+- `src/features/auth`
+- `src/features/passenger`
+- `src/features/driver`
+- `src/lib`
+- `src/hooks`
+- `src/types`
+
+The browser app communicates with the NestJS API through `src/lib/api-client.ts`. The API base URL is configured with `NEXT_PUBLIC_API_URL`.
+
+Placeholder routes are available for:
+
+- `/login`
+- `/passenger`
+- `/driver`
 
 ## Pooling Engine
 
@@ -102,6 +124,7 @@ Create the local environment file:
 
 ```powershell
 Copy-Item .env.example .env
+Copy-Item apps/web/.env.example apps/web/.env.local
 ```
 
 Install all workspaces from the repository root:
@@ -129,6 +152,8 @@ Start the web workspace:
 ```powershell
 npm run dev:web
 ```
+
+By default this starts the Next.js app on `http://localhost:3001`.
 
 Start the API workspace in a second terminal:
 
