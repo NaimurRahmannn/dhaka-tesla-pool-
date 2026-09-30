@@ -106,4 +106,29 @@ describe("DriverDashboard", () => {
     expect(await screen.findByText("Nusrat")).toBeInTheDocument();
     expect(screen.getByText("Finished Passenger Trips (1)")).toBeInTheDocument();
   });
+
+  it("restores the fetched online vehicle status when returning with an assigned pool", async () => {
+    vi.mocked(getAssignedPools).mockResolvedValue([
+      {
+        id: "pool-1",
+        status: "ACTIVE",
+        vehicleId: "veh-1",
+        memberCount: 1,
+      },
+    ]);
+    vi.mocked(getDriverVehicles).mockResolvedValue([
+      {
+        id: "veh-1",
+        driverId: "00000000-0000-4000-8000-000000000001",
+        name: "Bullet",
+        capacity: 3,
+        status: "ONLINE",
+      },
+    ]);
+
+    render(<DriverDashboard />);
+
+    expect(await screen.findByText("Vehicle is Online")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go Offline" })).toBeEnabled();
+  });
 });

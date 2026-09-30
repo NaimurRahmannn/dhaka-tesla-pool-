@@ -21,22 +21,25 @@ export function VehicleStatusCard({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (vehicleId) {
-      return;
-    }
-
     let isMounted = true;
+
     async function loadDriverVehicle() {
-      if (typeof getDriverVehicles !== "function") return;
+      if (vehicleId) {
+        setCurrentVehicleId(vehicleId);
+      }
+
       setIsLoading(true);
       try {
         const vehicles = await getDriverVehicles();
-        if (isMounted && vehicles && vehicles.length > 0) {
-          const firstVehicle = vehicles[0];
-          setCurrentVehicleId(firstVehicle.id);
-          setStatus(firstVehicle.status);
-          setVehicleName(firstVehicle.name ?? null);
-          onStatusChange?.(firstVehicle.status);
+        const selectedVehicle = vehicleId
+          ? vehicles.find((vehicle) => vehicle.id === vehicleId)
+          : vehicles[0];
+
+        if (isMounted && selectedVehicle) {
+          setCurrentVehicleId(selectedVehicle.id);
+          setStatus(selectedVehicle.status);
+          setVehicleName(selectedVehicle.name ?? null);
+          onStatusChange?.(selectedVehicle.status);
         }
       } catch (error: unknown) {
         if (isMounted) {
@@ -119,7 +122,7 @@ export function VehicleStatusCard({
               type="button"
               className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
               onClick={() => handleToggleStatus("OFFLINE")}
-              disabled={isUpdating || isLoading || !currentVehicleId}
+              disabled={isUpdating || !currentVehicleId}
             >
               {isUpdating ? "Updating..." : "Go Offline"}
             </button>
@@ -128,7 +131,7 @@ export function VehicleStatusCard({
               type="button"
               className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               onClick={() => handleToggleStatus("ONLINE")}
-              disabled={isUpdating || isLoading || !currentVehicleId}
+              disabled={isUpdating || !currentVehicleId}
             >
               {isUpdating ? "Updating..." : "Go Online"}
             </button>

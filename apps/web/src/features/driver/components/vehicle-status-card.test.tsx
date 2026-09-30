@@ -12,6 +12,7 @@ describe("VehicleStatusCard", () => {
   beforeEach(() => {
     vi.mocked(updateVehicleStatus).mockReset();
     vi.mocked(getDriverVehicles).mockReset();
+    vi.mocked(getDriverVehicles).mockResolvedValue([]);
   });
 
   it("renders offline status by default and allows going online", async () => {
@@ -87,5 +88,30 @@ describe("VehicleStatusCard", () => {
 
     expect(await screen.findByText("veh-auto-1")).toBeInTheDocument();
     expect(screen.getByText(/Bullet/)).toBeInTheDocument();
+  });
+
+  it("loads the current vehicle status when a vehicleId is provided", async () => {
+    const onStatusChange = vi.fn();
+    vi.mocked(getDriverVehicles).mockResolvedValue([
+      {
+        id: "veh-auto-1",
+        driverId: "driver-1",
+        name: "Bullet",
+        capacity: 3,
+        status: "ONLINE",
+      },
+    ]);
+
+    render(
+      <VehicleStatusCard
+        vehicleId="veh-auto-1"
+        initialStatus="OFFLINE"
+        onStatusChange={onStatusChange}
+      />,
+    );
+
+    expect(await screen.findByText("Vehicle is Online")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Go Offline" })).toBeEnabled();
+    expect(onStatusChange).toHaveBeenCalledWith("ONLINE");
   });
 });
