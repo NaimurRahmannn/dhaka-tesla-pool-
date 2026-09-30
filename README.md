@@ -68,6 +68,8 @@ The passenger workflow uses the existing NestJS ride endpoints:
 The driver workflow uses the existing NestJS driver endpoints:
 
 - `GET /driver/pools`
+- `GET /driver/rides/assigned`
+- `GET /driver/rides/completed`
 - `PATCH /driver/vehicles/:id/status`
 - `PATCH /driver/rides/:id/arrive`
 - `PATCH /driver/rides/:id/start`
@@ -139,12 +141,14 @@ Driver endpoints require JWT authentication and the `DRIVER` role. Driver identi
 Implemented driver endpoints:
 
 - `GET /driver/pools`: returns pools assigned to vehicles owned by the authenticated driver.
+- `GET /driver/rides/assigned`: returns active rides assigned through the driver's vehicle pools.
+- `GET /driver/rides/completed`: returns recent completed rides assigned through the driver's vehicle pools.
 - `PATCH /driver/vehicles/:id/status`: updates one of the driver's own vehicles to `ONLINE` or `OFFLINE`.
 - `PATCH /driver/rides/:id/arrive`: transitions an assigned ride from `MATCHED` to `DRIVER_ARRIVED`.
 - `PATCH /driver/rides/:id/start`: transitions an assigned ride from `DRIVER_ARRIVED` to `STARTED`.
 - `PATCH /driver/rides/:id/complete`: transitions an assigned ride from `STARTED` to `COMPLETED`.
 
-Driver ride lifecycle actions verify that the ride is assigned through a pool to a vehicle owned by the authenticated driver. The assigned vehicle must be `ONLINE`. Ride status changes use the ride transition service, and completing the last ride in an active pool completes the pool through the pool transition service.
+Driver ride lifecycle actions verify that the ride is assigned through a pool to a vehicle owned by the authenticated driver. The assigned vehicle must be `ONLINE`. Ride status changes use the ride transition service. Starting a ride activates its matching pool, and completing the last ride in a matching or active pool completes the pool through the pool transition service.
 
 ## Basic Setup
 
