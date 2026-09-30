@@ -41,6 +41,26 @@ async function parseResponse(response: Response): Promise<unknown> {
   return JSON.parse(text);
 }
 
+function getErrorMessage(responseBody: unknown, status: number): string {
+  if (
+    responseBody &&
+    typeof responseBody === "object" &&
+    "message" in responseBody
+  ) {
+    const { message } = responseBody as { message: unknown };
+
+    if (typeof message === "string") {
+      return message;
+    }
+
+    if (Array.isArray(message)) {
+      return message.join(", ");
+    }
+  }
+
+  return `API request failed with status ${status}`;
+}
+
 export async function apiRequest<TResponse>(
   path: string,
   options: ApiRequestOptions = {},
@@ -67,7 +87,7 @@ export async function apiRequest<TResponse>(
 
   if (!response.ok) {
     throw new ApiClientError(
-      `API request failed with status ${response.status}`,
+      getErrorMessage(responseBody, response.status),
       response.status,
       responseBody,
     );

@@ -35,7 +35,7 @@ export function VehicleStatusCard({
           const firstVehicle = vehicles[0];
           setCurrentVehicleId(firstVehicle.id);
           setStatus(firstVehicle.status);
-          setVehicleName(firstVehicle.name);
+          setVehicleName(firstVehicle.name ?? null);
           onStatusChange?.(firstVehicle.status);
         }
       } catch (error: unknown) {

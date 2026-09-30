@@ -1,12 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ApiClientError } from "@/lib/api-client";
 import {
   acceptRide as acceptRideApi,
   autoAssignClosestRide as autoAssignClosestRideApi,
   getNearbyRides as getNearbyRidesApi,
 } from "../api/driver-api";
 import type { NearbyRide } from "../types/driver.types";
+
+function getAssignmentErrorMessage(error: unknown, fallback: string): string {
+  const message = error instanceof Error ? error.message : fallback;
+
+  if (
+    error instanceof ApiClientError &&
+    message.toLowerCase().includes("pool capacity exceeded")
+  ) {
+    return "No seats left in this vehicle. Bullet is already full.";
+  }
+
+  return message;
+}
 
 export function useNearbyRides({
   lat,
@@ -84,9 +98,7 @@ export function useNearbyRides({
         await refreshNearbyRides();
         return result;
       } catch (error: unknown) {
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to accept ride",
-        );
+        setErrorMessage(getAssignmentErrorMessage(error, "Failed to accept ride"));
         throw error;
       } finally {
         setIsAssigning(false);
@@ -109,7 +121,7 @@ export function useNearbyRides({
       return result;
     } catch (error: unknown) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Failed to auto-assign ride",
+        getAssignmentErrorMessage(error, "Failed to auto-assign ride"),
       );
       throw error;
     } finally {
