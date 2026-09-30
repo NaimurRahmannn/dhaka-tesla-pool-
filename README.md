@@ -229,3 +229,49 @@ Run frontend tests:
 ```powershell
 npm test --workspace=@dhaka-tesla-pool/web
 ```
+
+## Docker
+
+The repository includes Dockerfiles for both application workspaces:
+
+- `apps/api/Dockerfile`
+- `apps/web/Dockerfile`
+
+The root `docker-compose.yml` runs:
+
+- PostgreSQL on `${POSTGRES_PORT:-5432}`
+- NestJS API on `${API_PORT:-3000}`
+- Next.js web app on `${WEB_PORT:-3001}`
+
+For local Docker usage, create `.env` from `.env.example` and replace placeholder values such as `JWT_SECRET` before shared use.
+
+Build and start the full stack:
+
+```powershell
+docker compose up --build
+```
+
+For a fresh database, run migrations and seed data against the Compose database:
+
+```powershell
+docker compose up -d db
+docker compose run --rm api npm run db:migrate:deploy
+docker compose run --rm api npm run db:seed
+docker compose up --build
+```
+
+Validate the Compose configuration:
+
+```powershell
+docker compose --env-file .env.example config
+```
+
+## Continuous Integration
+
+GitHub Actions workflow:
+
+```text
+.github/workflows/ci.yml
+```
+
+CI runs on pushes to `main`, `master`, `pre-release`, `release/**`, and `feature/**`, plus pull requests. It installs dependencies, validates and generates Prisma, lints, tests, builds the API and web workspaces, and validates the Docker Compose configuration.
