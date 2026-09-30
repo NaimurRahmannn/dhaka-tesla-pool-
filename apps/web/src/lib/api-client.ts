@@ -22,13 +22,10 @@ export class ApiClientError extends Error {
 }
 
 function buildApiUrl(path: string): string {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-  if (!apiBaseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is not configured");
-  }
-
-  const normalizedBaseUrl = apiBaseUrl.replace(/\/$/, "");
+  const normalizedBaseUrl = apiBaseUrl.trim().replace(/\/$/, "");
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
   return `${normalizedBaseUrl}${normalizedPath}`;
