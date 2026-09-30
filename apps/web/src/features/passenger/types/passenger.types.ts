@@ -13,6 +13,8 @@ export type CreateRideRequest = {
   destinationLng: number;
 };
 
+import type { Pool } from "@/features/pool";
+
 export type Ride = {
   id: string;
   status: RideStatus;
@@ -24,6 +26,8 @@ export type Ride = {
   estimatedFarePaisa?: number | null;
   createdAt?: string;
   updatedAt?: string;
+  poolId?: string | null;
+  pool?: Pool | null;
 };
 
 export type RideMutationResult = {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/features/auth";
 import { formatFare } from "@/features/passenger/utils/format-fare";
 import { formatLocationName } from "@/features/passenger/utils/format-location";
+import { PoolCard } from "@/features/pool";
 import { useRide } from "../hooks/use-ride";
 import { RideStatus } from "./ride-status";
 
@@ -100,6 +101,22 @@ function RideDetailsContent({ rideId }: { rideId: string }) {
               ) : null}
             </dl>
           </article>
+        ) : null}
+
+        {ride && (ride.pool || ride.poolId) ? (
+          <section aria-label="Pool details">
+            <PoolCard
+              pool={
+                ride.pool ?? {
+                  id: ride.poolId!,
+                  status:
+                    ride.status === "COMPLETED" ? "COMPLETED" : "ACTIVE",
+                  memberCount: 2,
+                }
+              }
+              isPassengerView
+            />
+          </section>
         ) : null}
       </div>
     </main>

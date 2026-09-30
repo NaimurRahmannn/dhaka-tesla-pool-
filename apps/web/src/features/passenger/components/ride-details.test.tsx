@@ -100,4 +100,38 @@ describe("RideDetailsPage", () => {
 
     expect(await screen.findByText("Ride not found")).toBeInTheDocument();
   });
+
+  it("shows pool information when available", async () => {
+    vi.mocked(getRide).mockResolvedValue({
+      id: "ride-pooled-123",
+      status: "MATCHED",
+      estimatedFarePaisa: 6000,
+      pool: {
+        id: "abc123",
+        status: "ACTIVE",
+        memberCount: 2,
+      },
+    });
+
+    render(<RideDetailsPage rideId="ride-pooled-123" />);
+
+    expect(await screen.findByText("Your ride is pooled")).toBeInTheDocument();
+    expect(screen.getByText("abc123")).toBeInTheDocument();
+    expect(screen.getByText("ACTIVE")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("hides pool section when ride is not pooled", async () => {
+    vi.mocked(getRide).mockResolvedValue({
+      id: "ride-solo-123",
+      status: "REQUESTED",
+      estimatedFarePaisa: 6000,
+    });
+
+    render(<RideDetailsPage rideId="ride-solo-123" />);
+
+    expect(await screen.findByText("ride-solo-123")).toBeInTheDocument();
+    expect(screen.queryByText("Your ride is pooled")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("pool-card-passenger")).not.toBeInTheDocument();
+  });
 });
