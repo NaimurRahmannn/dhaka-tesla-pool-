@@ -25,3 +25,33 @@ export type DriverRide = {
 export type UpdateVehicleStatusRequest = {
   status: VehicleStatus;
 };
+
+export type AssignedRide = {
+  id: string;
+  passengerId: string;
+  passengerName: string;
+  pickupLat: number;
+  pickupLng: number;
+  destinationLat: number;
+  destinationLng: number;
+  status: RideStatus;
+  requestedSeats: number;
+  farePaisa: number;
+  poolId: string;
+  createdAt: string;
+};
+
+export type NearbyRide = {
+  id: string;
+  passengerId: string;
+  passengerName: string;
+  pickupLat: number;
+  pickupLng: number;
+  destinationLat: number;
+  destinationLng: number;
+  status: RideStatus;
+  requestedSeats: number;
+  estimatedFarePaisa: number | null;
+  distanceMeter: number;
+  createdAt: string;
+};
