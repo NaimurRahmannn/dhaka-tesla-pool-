@@ -17,8 +17,5 @@
     "build:api": "npm run build --workspace=@dhaka-tesla-pool/api",
     "lint:web": "npm run lint --workspace=@dhaka-tesla-pool/web",
     "lint:api": "npm run lint --workspace=@dhaka-tesla-pool/api"
-  },
-  "devDependencies": {
-    "@esbuild/win32-x64": "^0.28.2"
   }
 }
