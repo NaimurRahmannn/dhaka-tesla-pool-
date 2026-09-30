@@ -3,12 +3,11 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/users/prisma.service.js';
 
 describe('Authentication (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: INestApplication;
   const users = new Map<
     string,
     {
