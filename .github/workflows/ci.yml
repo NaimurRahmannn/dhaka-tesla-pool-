@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - pre-release
+      - "release/**"
+      - "feature/**"
+  pull_request:
+
+jobs:
+  verify:
+    name: Verify monorepo
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npm run db:validate --workspace=@dhaka-tesla-pool/api
+        env:
+          DATABASE_URL: postgresql://tesla_pool:change_me@localhost:5432/tesla_pool
+
+      - name: Generate Prisma client
+        run: npm run db:generate --workspace=@dhaka-tesla-pool/api
+        env:
+          DATABASE_URL: postgresql://tesla_pool:change_me@localhost:5432/tesla_pool
+
+      - name: Lint API
+        run: npm run lint:api
+
+      - name: Test API
+        run: npm test --workspace=@dhaka-tesla-pool/api
+        env:
+          DATABASE_URL: postgresql://tesla_pool:change_me@localhost:5432/tesla_pool
+          JWT_SECRET: ci_jwt_secret
+          JWT_EXPIRES_IN: 1h
+
+      - name: Build API
+        run: npm run build:api
+        env:
+          DATABASE_URL: postgresql://tesla_pool:change_me@localhost:5432/tesla_pool
+          JWT_SECRET: ci_jwt_secret
+          JWT_EXPIRES_IN: 1h
+
+      - name: Lint web
+        run: npm run lint:web
+
+      - name: Test web
+        run: npm test --workspace=@dhaka-tesla-pool/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3000
+
+      - name: Build web
+        run: npm run build:web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3000
+
+      - name: Validate Docker Compose config
+        run: docker compose --env-file .env.example config
