@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
+import { MapView, useMapRoute } from "@/features/map";
+import type { Coordinates } from "@/features/map";
 import { createRide } from "../api/passenger-api";
 import type { CreateRideRequest } from "../types/passenger.types";
 import {
@@ -61,9 +63,32 @@ function getErrorMessage(error: unknown): string {
 export function RideForm() {
   const router = useRouter();
   const [form, setForm] = useState(initialForm);
+  const [selectionMode, setSelectionMode] = useState<"pickup" | "destination">(
+    "pickup",
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [geoNotice, setGeoNotice] = useState<string | null>(null);
+
+  const pickupCoords = useMemo<Coordinates | null>(() => {
+    if (!form.pickupLat || !form.pickupLng) return null;
+    const lat = Number(form.pickupLat);
+    const lng = Number(form.pickupLng);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  }, [form.pickupLat, form.pickupLng]);
+
+  const destinationCoords = useMemo<Coordinates | null>(() => {
+    if (!form.destinationLat || !form.destinationLng) return null;
+    const lat = Number(form.destinationLat);
+    const lng = Number(form.destinationLng);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  }, [form.destinationLat, form.destinationLng]);
+
+  const {
+    route,
+    isLoading: isRouteLoading,
+    errorMessage: routeError,
+  } = useMapRoute(pickupCoords, destinationCoords);
 
   function applyPresetRoute(shortcut: (typeof ROUTE_SHORTCUTS)[number]) {
     setForm({
@@ -75,10 +100,35 @@ export function RideForm() {
     setErrorMessage(null);
   }
 
+  function handleSelectPickupOnMap(coords: Coordinates) {
+    setForm((prev) => ({
+      ...prev,
+      pickupLat: coords.lat.toString(),
+      pickupLng: coords.lng.toString(),
+    }));
+    // Auto-advance to destination selection if not yet set
+    if (!form.destinationLat || !form.destinationLng) {
+      setSelectionMode("destination");
+    }
+    setErrorMessage(null);
+  }
+
+  function handleSelectDestinationOnMap(coords: Coordinates) {
+    setForm((prev) => ({
+      ...prev,
+      destinationLat: coords.lat.toString(),
+      destinationLng: coords.lng.toString(),
+    }));
+    setErrorMessage(null);
+  }
+
   function handleSelectPickupHub(coords: string) {
     if (!coords) return;
     const [lat, lng] = coords.split(",");
     setForm((prev) => ({ ...prev, pickupLat: lat, pickupLng: lng }));
+    if (!form.destinationLat || !form.destinationLng) {
+      setSelectionMode("destination");
+    }
   }
 
   function handleSelectDestinationHub(coords: string) {
@@ -103,7 +153,7 @@ export function RideForm() {
         setGeoNotice("Current location detected.");
       },
       () => {
-        setGeoNotice("Could not access location. Please select a landmark.");
+        setGeoNotice("Could not access location. Please select on the map.");
       },
       { timeout: 8000 },
     );
@@ -113,12 +163,12 @@ export function RideForm() {
     event.preventDefault();
 
     if (!form.pickupLat || !form.pickupLng) {
-      setErrorMessage("Please select a pickup location.");
+      setErrorMessage("Please select a pickup location on the map.");
       return;
     }
 
     if (!form.destinationLat || !form.destinationLng) {
-      setErrorMessage("Please select a destination location.");
+      setErrorMessage("Please select a destination location on the map.");
       return;
     }
 
@@ -127,7 +177,6 @@ export function RideForm() {
 
     try {
       const ride = await createRide(toRideRequest(form));
-
       router.push(`/passenger/rides/${ride.id}`);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
@@ -162,125 +211,222 @@ export function RideForm() {
           Request a ride
         </h1>
         <p className="text-sm text-slate-600">
-          Choose a pickup and destination. Route and fare are calculated after you submit.
+          Choose a pickup and destination on the map. View the route preview before submitting.
         </p>
       </div>
 
-      {/* Quick Route Shortcuts */}
-      <div className="space-y-3 border-t border-slate-100 pt-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-          Popular Trips
-        </p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {ROUTE_SHORTCUTS.map((shortcut) => (
-            <button
-              key={shortcut.label}
-              type="button"
-              onClick={() => applyPresetRoute(shortcut)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-xs font-medium text-slate-700 shadow-sm transition hover:border-emerald-600 hover:text-emerald-700 active:scale-[0.99]"
-            >
-              {shortcut.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Pickup Section */}
-      <fieldset className="space-y-3 border-t border-slate-100 pt-5">
+      {/* Map Selection Section */}
+      <div className="space-y-3">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <label
-            htmlFor="pickup-select"
-            className="text-sm font-semibold text-slate-900"
-          >
-            1. Pickup Location
-          </label>
-          <button
-            type="button"
-            onClick={handleUseCurrentLocation}
-            className="inline-flex w-fit text-xs font-medium text-emerald-700 hover:underline"
-          >
-            Use current location
-          </button>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Map Route Selection
+          </p>
+          <span className="text-xs text-slate-500">
+            {selectionMode === "pickup"
+              ? "Click map to set Pickup point"
+              : "Click map to set Destination point"}
+          </span>
         </div>
 
-        {geoNotice ? (
-          <p className="text-xs text-slate-600">{geoNotice}</p>
-        ) : null}
+        <MapView
+          pickup={pickupCoords}
+          destination={destinationCoords}
+          routeCoordinates={route?.coordinates}
+          selectionMode={selectionMode}
+          onSelectionModeChange={setSelectionMode}
+          onSelectPickup={handleSelectPickupOnMap}
+          onSelectDestination={handleSelectDestinationOnMap}
+          isLoading={isRouteLoading}
+          errorMessage={routeError}
+          height="340px"
+        />
 
-        <select
-          id="pickup-select"
-          aria-label="Select popular pickup landmark"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-          onChange={(e) => handleSelectPickupHub(e.target.value)}
-          value={
-            form.pickupLat && form.pickupLng
-              ? `${form.pickupLat},${form.pickupLng}`
-              : ""
-          }
+        {/* Selected Coordinates Display */}
+        <div
+          data-testid="selected-coordinates-summary"
+          className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 text-xs"
         >
-          <option value="" disabled>
-            -- Choose pickup landmark --
-          </option>
-          {DHAKA_AREAS.map((area) => (
-            <optgroup key={area} label={area}>
-              {DHAKA_HUBS.filter((hub) => hub.area === area).map((hub) => (
-                <option key={hub.name} value={`${hub.lat},${hub.lng}`}>
-                  {hub.name}
-                </option>
+          <div className="space-y-1">
+            <span className="font-semibold text-emerald-800">
+              Pickup Point:
+            </span>{" "}
+            {pickupCoords ? (
+              <span
+                data-testid="selected-pickup-coords"
+                className="font-mono text-slate-800"
+              >
+                {pickupCoords.lat.toFixed(5)}, {pickupCoords.lng.toFixed(5)}
+                {pickupName ? ` (${pickupName})` : ""}
+              </span>
+            ) : (
+              <span className="italic text-slate-400">Not selected yet</span>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <span className="font-semibold text-red-800">
+              Destination Point:
+            </span>{" "}
+            {destinationCoords ? (
+              <span
+                data-testid="selected-destination-coords"
+                className="font-mono text-slate-800"
+              >
+                {destinationCoords.lat.toFixed(5)},{" "}
+                {destinationCoords.lng.toFixed(5)}
+                {destinationName ? ` (${destinationName})` : ""}
+              </span>
+            ) : (
+              <span className="italic text-slate-400">Not selected yet</span>
+            )}
+          </div>
+        </div>
+
+        {/* Route Preview Panel */}
+        {route ? (
+          <div
+            data-testid="route-preview"
+            className="flex flex-col gap-3 rounded-md border border-emerald-200 bg-emerald-50/60 p-4 text-xs text-emerald-950 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="space-y-1">
+              <p className="font-semibold uppercase tracking-wider text-emerald-800">
+                Route Preview
+              </p>
+              <p className="text-slate-600">
+                Route and distance calculated via backend routing provider
+              </p>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div>
+                <span className="text-slate-500 block">Distance</span>
+                <span
+                  data-testid="route-preview-distance"
+                  className="text-base font-bold text-slate-900"
+                >
+                  {route.distanceKm} km
+                </span>
+              </div>
+
+              <div>
+                <span className="text-slate-500 block">Est. Duration</span>
+                <span
+                  data-testid="route-preview-duration"
+                  className="text-base font-bold text-slate-900"
+                >
+                  {route.durationMinutes} mins
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Quick Route Shortcuts & Landmark Selectors */}
+      <details className="rounded-md border border-slate-200 bg-slate-50/50 p-3 text-xs">
+        <summary className="cursor-pointer font-semibold text-slate-700 hover:text-emerald-700">
+          Popular Landmarks & Trips (Optional Shortcuts)
+        </summary>
+        <div className="mt-3 space-y-4 pt-2 border-t border-slate-200">
+          <div>
+            <p className="mb-2 font-medium text-slate-600">Popular Trips</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {ROUTE_SHORTCUTS.map((shortcut) => (
+                <button
+                  key={shortcut.label}
+                  type="button"
+                  onClick={() => applyPresetRoute(shortcut)}
+                  className="rounded border border-slate-300 bg-white px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 shadow-xs transition hover:border-emerald-600 hover:text-emerald-700"
+                >
+                  {shortcut.label}
+                </button>
               ))}
-            </optgroup>
-          ))}
-        </select>
+            </div>
+          </div>
 
-        {pickupName ? (
-          <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-            Selected pickup: {pickupName}
-          </p>
-        ) : null}
-      </fieldset>
-
-      {/* Destination Section */}
-      <fieldset className="space-y-3 border-t border-slate-100 pt-5">
-        <label
-          htmlFor="destination-select"
-          className="text-sm font-semibold text-slate-900"
-        >
-          2. Destination Location
-        </label>
-
-        <select
-          id="destination-select"
-          aria-label="Select popular destination landmark"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
-          onChange={(e) => handleSelectDestinationHub(e.target.value)}
-          value={
-            form.destinationLat && form.destinationLng
-              ? `${form.destinationLat},${form.destinationLng}`
-              : ""
-          }
-        >
-          <option value="" disabled>
-            -- Choose destination landmark --
-          </option>
-          {DHAKA_AREAS.map((area) => (
-            <optgroup key={area} label={area}>
-              {DHAKA_HUBS.filter((hub) => hub.area === area).map((hub) => (
-                <option key={hub.name} value={`${hub.lat},${hub.lng}`}>
-                  {hub.name}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label
+                  htmlFor="pickup-select"
+                  className="font-medium text-slate-700"
+                >
+                  Pickup Landmark
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  className="text-[11px] text-emerald-700 hover:underline"
+                >
+                  Use current location
+                </button>
+              </div>
+              {geoNotice ? (
+                <p className="text-[11px] text-slate-500 mb-1">{geoNotice}</p>
+              ) : null}
+              <select
+                id="pickup-select"
+                aria-label="Select popular pickup landmark"
+                className="w-full rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none"
+                onChange={(e) => handleSelectPickupHub(e.target.value)}
+                value={
+                  form.pickupLat && form.pickupLng
+                    ? `${form.pickupLat},${form.pickupLng}`
+                    : ""
+                }
+              >
+                <option value="" disabled>
+                  -- Select landmark --
                 </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+                {DHAKA_AREAS.map((area) => (
+                  <optgroup key={area} label={area}>
+                    {DHAKA_HUBS.filter((hub) => hub.area === area).map((hub) => (
+                      <option key={hub.name} value={`${hub.lat},${hub.lng}`}>
+                        {hub.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
 
-        {destinationName ? (
-          <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-            Selected destination: {destinationName}
-          </p>
-        ) : null}
-      </fieldset>
+            <div>
+              <label
+                htmlFor="destination-select"
+                className="block font-medium text-slate-700 mb-1"
+              >
+                Destination Landmark
+              </label>
+              <select
+                id="destination-select"
+                aria-label="Select popular destination landmark"
+                className="w-full rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none"
+                onChange={(e) => handleSelectDestinationHub(e.target.value)}
+                value={
+                  form.destinationLat && form.destinationLng
+                    ? `${form.destinationLat},${form.destinationLng}`
+                    : ""
+                }
+              >
+                <option value="" disabled>
+                  -- Select landmark --
+                </option>
+                {DHAKA_AREAS.map((area) => (
+                  <optgroup key={area} label={area}>
+                    {DHAKA_HUBS.filter((hub) => hub.area === area).map((hub) => (
+                      <option key={hub.name} value={`${hub.lat},${hub.lng}`}>
+                        {hub.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </details>
 
-      {/* Hidden coordinate inputs for backend form submission and test compatibility */}
+      {/* Hidden coordinate inputs for form submission and test compatibility */}
       <div className="sr-only">
         <CoordinateInput
           label="Pickup latitude"
@@ -349,5 +495,3 @@ function CoordinateInput({
     </label>
   );
 }
-
-

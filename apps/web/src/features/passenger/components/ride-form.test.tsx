@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRide } from "../api/passenger-api";
 import { RideForm } from "./ride-form";
 
@@ -19,11 +19,17 @@ describe("RideForm", () => {
   beforeEach(() => {
     pushMock.mockReset();
     vi.mocked(createRide).mockReset();
+    vi.unstubAllGlobals();
   });
 
-  it("renders coordinate fields and submit button", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("renders coordinate fields and submit button", async () => {
     render(<RideForm />);
 
+    expect(await screen.findByTestId("map-view")).toBeInTheDocument();
     expect(screen.getByLabelText("Pickup latitude")).toBeInTheDocument();
     expect(screen.getByLabelText("Pickup longitude")).toBeInTheDocument();
     expect(screen.getByLabelText("Destination latitude")).toBeInTheDocument();
@@ -31,6 +37,117 @@ describe("RideForm", () => {
     expect(
       screen.getByRole("button", { name: "Request ride" }),
     ).toBeInTheDocument();
+  });
+
+  it("pickup selection on map updates state", async () => {
+    render(<RideForm />);
+    await screen.findByTestId("map-container");
+
+    window.__triggerMapClick?.(23.7937, 90.4043);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Pickup latitude")).toHaveValue(23.7937);
+      expect(screen.getByLabelText("Pickup longitude")).toHaveValue(90.4043);
+      expect(screen.getByTestId("selected-pickup-coords")).toHaveTextContent(
+        "23.79370, 90.40430",
+      );
+    });
+  });
+
+  it("destination selection on map updates state", async () => {
+    render(<RideForm />);
+    await screen.findByTestId("map-container");
+
+    // Switch toolbar to destination selection mode
+    fireEvent.click(
+      screen.getByRole("button", { name: "2. Set Destination" }),
+    );
+
+    window.__triggerMapClick?.(23.7925, 90.4078);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Destination latitude")).toHaveValue(23.7925);
+      expect(screen.getByLabelText("Destination longitude")).toHaveValue(90.4078);
+      expect(screen.getByTestId("selected-destination-coords")).toHaveTextContent(
+        "23.79250, 90.40780",
+      );
+    });
+  });
+
+  it("displays route preview before ride submission", async () => {
+    const mockRouteResponse = {
+      code: "Ok",
+      routes: [
+        {
+          distance: 3500,
+          duration: 600,
+          geometry: {
+            coordinates: [
+              [90.4043, 23.7937],
+              [90.4078, 23.7925],
+            ],
+          },
+        },
+      ],
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json(mockRouteResponse)));
+
+    render(<RideForm />);
+    await screen.findByTestId("map-container");
+
+    // Select pickup
+    window.__triggerMapClick?.(23.7937, 90.4043);
+
+    // Wait for pickup to register and mode to advance
+    await waitFor(() => {
+      expect(screen.getByLabelText("Pickup latitude")).toHaveValue(23.7937);
+    });
+
+    // Select destination
+    window.__triggerMapClick?.(23.7925, 90.4078);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("route-preview")).toBeInTheDocument();
+      expect(screen.getByTestId("route-preview-distance")).toHaveTextContent("3.5 km");
+      expect(screen.getByTestId("route-preview-duration")).toHaveTextContent("10 mins");
+    });
+  });
+
+  it("passenger ride form submits selected coordinates", async () => {
+    vi.mocked(createRide).mockResolvedValue({
+      id: "ride-map-789",
+      status: "REQUESTED",
+    });
+
+    render(<RideForm />);
+    await screen.findByTestId("map-container");
+
+    // Select pickup on map
+    window.__triggerMapClick?.(23.7937, 90.4043);
+
+    // Wait for pickup to register
+    await waitFor(() => {
+      expect(screen.getByLabelText("Pickup latitude")).toHaveValue(23.7937);
+    });
+
+    // Select destination on map
+    window.__triggerMapClick?.(23.7925, 90.4078);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Destination latitude")).toHaveValue(23.7925);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Request ride" }));
+
+    await waitFor(() => {
+      expect(createRide).toHaveBeenCalledWith({
+        pickupLat: 23.7937,
+        pickupLng: 90.4043,
+        destinationLat: 23.7925,
+        destinationLng: 90.4078,
+      });
+      expect(pushMock).toHaveBeenCalledWith("/passenger/rides/ride-map-789");
+    });
   });
 
   it("submits coordinate data and redirects upon success", async () => {
@@ -130,4 +247,3 @@ describe("RideForm", () => {
     expect(screen.getByLabelText("Destination longitude")).toHaveValue(90.4225);
   });
 });
-
