@@ -31,6 +31,7 @@ The frontend is organized around future workflow boundaries:
 - `src/features/passenger`
 - `src/features/driver`
 - `src/features/pool`
+- `src/features/map`
 - `src/lib`
 - `src/hooks`
 - `src/types`
@@ -88,7 +89,18 @@ The driver pool visualization on `/driver/pools` displays improved pool cards sh
 - Pool status and lifecycle state
 - Member count with vehicle capacity (e.g. `2/3`)
 
-The frontend collects coordinates and executes lifecycle transitions directly. Maps, GPS, live tracking, and payments are not implemented.
+### Map & Route Visualization
+
+- **Map Provider**: React Leaflet (`v5`) with OpenStreetMap (OSM) tiles. 100% free and open-source (no paid map providers or API keys).
+- **Setup & SSR Safety**: Maps are rendered client-side with Next.js dynamic import (`ssr: false`) to avoid server-side Leaflet window evaluation errors during static prerendering. Leaflet CSS is loaded via `leaflet/dist/leaflet.css`.
+- **Passenger Ride Flow (`/passenger/rides/new`)**:
+  - Interactive map centered on Dhaka (Banani / Gulshan hub area).
+  - Mode toggles for selecting pickup and destination directly on the map.
+  - Pre-submission route preview: queries backend/OSRM route geometry, distance, and estimated duration.
+  - Selected coordinates are submitted via `POST /rides`. Backend owns all routing, fare, and pooling compatibility calculations.
+- **Driver Route View (`/driver/rides/[id]`)**:
+  - Visualizes pickup, destination, and road route line when ride route information exists.
+  - No GPS tracking, turn-by-turn navigation, live location, driver tracking, or payments are implemented.
 
 ## Pooling Engine
 

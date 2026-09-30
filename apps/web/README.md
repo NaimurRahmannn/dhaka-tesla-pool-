@@ -83,6 +83,32 @@ Contains the frontend pool visualization architecture:
 - `components/pool-members.tsx`: member count indicator that protects passenger privacy.
 - `types/pool.types.ts`: typed contracts for `Pool`, `PoolStatus`, and `PoolMember`.
 
+## Map & Route Visualization (`src/features/map`)
+
+### Map Provider Choice
+- **React Leaflet** with **OpenStreetMap (OSM)** tiles.
+- 100% free and open-source map provider (no API keys, billing accounts, or paid map providers required).
+- Centered on Dhaka metropolitan hub (Banani / Gulshan area).
+
+### Map Setup Instructions
+1. **Dependencies**: `leaflet`, `react-leaflet`, `@types/leaflet`.
+2. **Leaflet CSS**: Leaflet styles are imported via `leaflet/dist/leaflet.css`.
+3. **Client-Side Rendering**: Because Leaflet relies on browser `window` APIs (`window.requestAnimationFrame`), the interactive map view is encapsulated in a client component and loaded with Next.js dynamic import (`ssr: false`) to ensure clean server-side prerendering without SSR crashes.
+4. **Environment Configuration**: Set `NEXT_PUBLIC_OSRM_URL` (defaults to `https://router.project-osrm.org`) if using a dedicated local OSRM routing container.
+
+### Route Visualization Flow
+1. **Passenger Ride Creation (`/passenger/rides/new`)**:
+   - Opens the interactive MapView centered on Dhaka.
+   - User toggles between "1. Set Pickup" and "2. Set Destination" mode.
+   - Clicking on the map sets the precise geographic coordinates (latitude and longitude).
+   - Once both coordinates are selected, `useMapRoute` queries the routing backend (OSRM) to fetch the road route geometry, estimated driving distance, and duration.
+   - Displays a route preview summary (distance in km, duration in minutes) and renders the route polyline with emerald pickup ("P") and red destination ("D") markers.
+   - User submits the ride via `POST /rides` using the collected coordinates. Backend owns all fare calculation and pooling compatibility logic.
+2. **Driver Ride Route View (`/driver/rides/[id]`)**:
+   - When a driver inspects an assigned ride that has pickup and destination coordinates, the route visualization panel is rendered.
+   - Displays pickup point, destination point, and the connected route polyline on the map.
+   - Does not provide live GPS tracking, driver tracking, or turn-by-turn navigation (explicitly out of scope).
+
 ## Tests
 
 Run from the repository root:
