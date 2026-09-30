@@ -16,7 +16,7 @@ The application currently includes:
 - Transactional seat allocation.
 - Pool lifecycle management.
 - Driver vehicle availability, assigned pool retrieval, and ride lifecycle actions.
-- Next.js frontend foundation with App Router, Tailwind CSS, and typed client boundaries.
+- Next.js frontend with authentication flow, App Router, Tailwind CSS, and typed client boundaries.
 
 The repository also includes the monorepo setup, NestJS API, PostgreSQL development container, Prisma migrations, and deterministic seed data.
 
@@ -33,13 +33,22 @@ The frontend is organized around future workflow boundaries:
 - `src/hooks`
 - `src/types`
 
-The browser app communicates with the NestJS API through `src/lib/api-client.ts`. The API base URL is configured with `NEXT_PUBLIC_API_URL`.
+The browser app communicates with the NestJS API through `src/lib/api-client.ts`. The API base URL is configured with `NEXT_PUBLIC_API_URL`, and authenticated requests attach the stored JWT bearer token.
 
-Placeholder routes are available for:
+Frontend routes are available for:
 
 - `/login`
+- `/register`
 - `/passenger`
 - `/driver`
+
+The authentication flow uses the existing NestJS endpoints:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+
+After login, passengers are routed to `/passenger` and drivers are routed to `/driver`. The frontend stores the MVP access token in `localStorage`; refresh tokens are not implemented.
 
 ## Pooling Engine
 
@@ -159,4 +168,10 @@ Start the API workspace in a second terminal:
 
 ```powershell
 npm run dev:api
+```
+
+Run frontend tests:
+
+```powershell
+npm test --workspace=@dhaka-tesla-pool/web
 ```
