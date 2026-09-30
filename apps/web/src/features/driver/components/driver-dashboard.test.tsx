@@ -1,6 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getAssignedPools, getDriverVehicles } from "../api/driver-api";
+import {
+  getAssignedPools,
+  getCompletedRides,
+  getDriverVehicles,
+} from "../api/driver-api";
 import { DriverDashboard } from "./driver-dashboard";
 
 vi.mock("next/navigation", () => ({
@@ -25,6 +29,7 @@ vi.mock("../api/driver-api", () => ({
   updateVehicleStatus: vi.fn(),
   getDriverVehicles: vi.fn(),
   getAssignedRides: vi.fn().mockResolvedValue([]),
+  getCompletedRides: vi.fn().mockResolvedValue([]),
   getNearbyRides: vi.fn().mockResolvedValue([]),
   acceptRide: vi.fn(),
   autoAssignClosestRide: vi.fn(),
@@ -33,7 +38,9 @@ vi.mock("../api/driver-api", () => ({
 describe("DriverDashboard", () => {
   beforeEach(() => {
     vi.mocked(getAssignedPools).mockReset();
+    vi.mocked(getCompletedRides).mockReset();
     vi.mocked(getDriverVehicles).mockReset();
+    vi.mocked(getCompletedRides).mockResolvedValue([]);
     vi.mocked(getDriverVehicles).mockResolvedValue([
       {
         id: "veh-1",
@@ -72,5 +79,31 @@ describe("DriverDashboard", () => {
     expect(
       await screen.findByText("No pools assigned to this driver yet."),
     ).toBeInTheDocument();
+  });
+
+  it("renders completed ride history separately from active rides", async () => {
+    vi.mocked(getAssignedPools).mockResolvedValue([]);
+    vi.mocked(getCompletedRides).mockResolvedValue([
+      {
+        id: "ride-completed-1",
+        passengerId: "p-1",
+        passengerName: "Nusrat",
+        pickupLat: 23.7937,
+        pickupLng: 90.4043,
+        destinationLat: 23.7804,
+        destinationLng: 90.419,
+        status: "COMPLETED",
+        requestedSeats: 1,
+        farePaisa: 4000,
+        poolId: "pool-1",
+        createdAt: "2026-09-30T10:00:00Z",
+      },
+    ]);
+
+    render(<DriverDashboard />);
+
+    expect(await screen.findByText("Completed Trip History")).toBeInTheDocument();
+    expect(await screen.findByText("Nusrat")).toBeInTheDocument();
+    expect(screen.getByText("Finished Passenger Trips (1)")).toBeInTheDocument();
   });
 });

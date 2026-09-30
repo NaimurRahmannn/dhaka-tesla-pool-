@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { ProtectedRoute, useAuth } from "@/features/auth";
 import { DHAKA_HUBS, type DhakaHub } from "@/features/passenger/utils/format-location";
 import { useAssignedRides } from "../hooks/use-assigned-rides";
+import { useCompletedRides } from "../hooks/use-completed-rides";
 import { useDriverPools } from "../hooks/use-driver-pools";
 import { useNearbyRides } from "../hooks/use-nearby-rides";
 import type { VehicleStatus } from "../types/driver.types";
 import { AssignedRidesCard } from "./assigned-rides-card";
+import { CompletedRidesCard } from "./completed-rides-card";
 import { DriverLocationSelector } from "./driver-location-selector";
 import { NearbyRidesSection } from "./nearby-rides-section";
 import { PoolCard } from "./pool-card";
@@ -47,6 +49,13 @@ function DriverDashboardContent() {
     complete,
   } = useAssignedRides();
 
+  const {
+    completedRides,
+    isLoading: isCompletedLoading,
+    errorMessage: completedError,
+    refreshCompletedRides,
+  } = useCompletedRides();
+
   const isVehicleOnline = vehicleStatus === "ONLINE";
 
   const {
@@ -75,6 +84,11 @@ function DriverDashboardContent() {
   const handleAutoAssign = async () => {
     await autoAssign();
     await refreshAssignedRides();
+  };
+
+  const handleCompleteRide = async (rideId: string) => {
+    await complete(rideId);
+    await refreshCompletedRides();
   };
 
   const activePools = pools.filter((p) => p.status === "ACTIVE").length;
@@ -133,8 +147,18 @@ function DriverDashboardContent() {
           errorMessage={assignedError}
           onArrive={arrive}
           onStart={start}
-          onComplete={complete}
+          onComplete={handleCompleteRide}
           onRefresh={refreshAssignedRides}
+        />
+      </section>
+
+      {/* Completed Trip History */}
+      <section>
+        <CompletedRidesCard
+          completedRides={completedRides}
+          isLoading={isCompletedLoading}
+          errorMessage={completedError}
+          onRefresh={refreshCompletedRides}
         />
       </section>
 
