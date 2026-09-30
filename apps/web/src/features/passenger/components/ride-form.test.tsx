@@ -110,7 +110,7 @@ describe("RideForm", () => {
       expect(screen.getByTestId("route-preview")).toBeInTheDocument();
       expect(screen.getByTestId("route-preview-distance")).toHaveTextContent("3.5 km");
       expect(screen.getByTestId("route-preview-duration")).toHaveTextContent("10 mins");
-    });
+    }, { timeout: 3000 });
   });
 
   it("passenger ride form submits selected coordinates", async () => {

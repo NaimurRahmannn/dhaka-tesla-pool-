@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserProfileHeader } from "@/components";
 import { ProtectedRoute, useAuth } from "@/features/auth";
 import { DHAKA_HUBS, type DhakaHub } from "@/features/passenger/utils/format-location";
 import { useAssignedRides } from "../hooks/use-assigned-rides";
@@ -106,6 +107,7 @@ function DriverDashboardContent() {
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
         <header className="rounded-lg border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+          <UserProfileHeader />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">

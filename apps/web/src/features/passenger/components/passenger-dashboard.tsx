@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { UserProfileHeader } from "@/components";
 import { ProtectedRoute, useAuth } from "@/features/auth";
 import { usePassengerRides } from "../hooks/use-passenger-rides";
 import { RideCard } from "./ride-card";
@@ -27,6 +28,7 @@ function PassengerDashboardContent() {
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <header className="rounded-lg border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-6">
+          <UserProfileHeader />
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">

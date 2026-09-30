@@ -21,6 +21,21 @@ vi.mock("next/dynamic", () => {
   };
 });
 
+// Mock next/navigation for test environment
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
+}));
+
 
 
 // Mock react-leaflet for JSDOM test environment

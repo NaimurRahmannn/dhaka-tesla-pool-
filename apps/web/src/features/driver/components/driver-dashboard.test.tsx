@@ -131,4 +131,15 @@ describe("DriverDashboard", () => {
     expect(await screen.findByText("Vehicle is Online")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Go Offline" })).toBeEnabled();
   });
+
+  it("renders profile icon and logout button in header", async () => {
+    vi.mocked(getAssignedPools).mockResolvedValue([]);
+
+    render(<DriverDashboard />);
+
+    expect(screen.getByTestId("profile-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("user-display-name")).toHaveTextContent("Jashim Driver");
+    expect(screen.getByTestId("user-role-badge")).toHaveTextContent("Driver");
+    expect(screen.getByTestId("logout-button")).toBeInTheDocument();
+  });
 });

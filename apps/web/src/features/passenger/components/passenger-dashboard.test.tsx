@@ -60,4 +60,14 @@ describe("PassengerDashboard", () => {
       await screen.findByText("Network connection failed"),
     ).toBeInTheDocument();
   });
+
+  it("renders profile icon and logout button in header", async () => {
+    vi.mocked(getRides).mockResolvedValue([]);
+
+    render(<PassengerDashboard />);
+
+    expect(screen.getByTestId("profile-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("user-display-name")).toHaveTextContent("Nusrat");
+    expect(screen.getByTestId("logout-button")).toBeInTheDocument();
+  });
 });
