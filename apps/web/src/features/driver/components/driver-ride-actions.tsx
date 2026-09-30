@@ -22,16 +22,21 @@ export function DriverRideActions({
   initialStatus?: RideStatus;
   onStatusChange?: (status: RideStatus) => void;
 }) {
-  const [status, setStatus] = useState<RideStatus>(initialStatus);
+  const [transitionResult, setTransitionResult] = useState<{
+    rideId: string;
+    status: RideStatus;
+  } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const status =
+    transitionResult?.rideId === rideId ? transitionResult.status : initialStatus;
 
   async function handleArrive() {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
       const result = await arriveRide(rideId);
-      setStatus(result.status);
+      setTransitionResult({ rideId, status: result.status });
       onStatusChange?.(result.status);
     } catch (error: unknown) {
       setErrorMessage(
@@ -47,7 +52,7 @@ export function DriverRideActions({
     setErrorMessage(null);
     try {
       const result = await startRide(rideId);
-      setStatus(result.status);
+      setTransitionResult({ rideId, status: result.status });
       onStatusChange?.(result.status);
     } catch (error: unknown) {
       setErrorMessage(
@@ -63,7 +68,7 @@ export function DriverRideActions({
     setErrorMessage(null);
     try {
       const result = await completeRide(rideId);
-      setStatus(result.status);
+      setTransitionResult({ rideId, status: result.status });
       onStatusChange?.(result.status);
     } catch (error: unknown) {
       setErrorMessage(

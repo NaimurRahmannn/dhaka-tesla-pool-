@@ -65,6 +65,30 @@ describe("DriverRideActions", () => {
     });
   });
 
+  it("syncs actions when the loaded ride status changes after render", () => {
+    const { rerender } = render(
+      <DriverRideActions rideId="ride-102" initialStatus="MATCHED" />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Arrive at pickup" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <DriverRideActions rideId="ride-102" initialStatus="DRIVER_ARRIVED" />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Arrive at pickup" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start ride" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("ride-status-badge")).toHaveTextContent(
+      "DRIVER_ARRIVED",
+    );
+  });
+
   it("handles complete ride action when status is STARTED", async () => {
     vi.mocked(completeRide).mockResolvedValue({
       id: "ride-103",
