@@ -1,7 +1,12 @@
 export {
+  acceptRide,
   arriveRide,
+  autoAssignClosestRide,
   completeRide,
   getAssignedPools,
+  getAssignedRides,
+  getDriverVehicles,
+  getNearbyRides,
   startRide,
   updateVehicleStatus,
 } from "./api/driver-api";
@@ -12,14 +17,18 @@ export { DriverRideDetailsPage } from "./components/driver-ride-details-page";
 export { PoolCard } from "./components/pool-card";
 export { VehicleStatusCard } from "./components/vehicle-status-card";
 export {
+  useAssignedRides,
   useDriverPools,
   useDriverRide,
+  useNearbyRides,
   useVehicleStatus,
 } from "./hooks";
 export type {
+  AssignedRide,
   DriverPool,
   DriverRide,
   DriverVehicle,
+  NearbyRide,
   PoolStatus,
   RideStatus,
   UpdateVehicleStatusRequest,
