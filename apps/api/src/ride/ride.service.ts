@@ -10,6 +10,68 @@ import { CreateRideRequestDto } from './dto/create-ride-request.dto.js';
 import type { RideResult } from './interfaces/ride-result.interface.js';
 import { RideTransitionService } from './ride-transition.service.js';
 
+export type PassengerRideDetails = RideRequest & {
+  poolId?: string | null;
+  farePaisa?: number | null;
+  pool?: {
+    id: string;
+    status: string;
+    vehicleName: string;
+    capacity: number;
+    memberCount: number;
+  } | null;
+};
+
+const passengerRideInclude = {
+  poolMember: {
+    select: {
+      id: true,
+      farePaisa: true,
+      seatCount: true,
+      pool: {
+        select: {
+          id: true,
+          status: true,
+          vehicle: {
+            select: {
+              id: true,
+              name: true,
+              capacity: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+function mapPassengerRide(ride: any): PassengerRideDetails {
+  if (!ride) return ride;
+  if (ride.poolMember) {
+    const { pool, farePaisa } = ride.poolMember;
+    const { poolMember: _pm, ...rideProps } = ride;
+    return {
+      ...rideProps,
+      poolId: pool.id,
+      farePaisa,
+      pool: {
+        id: pool.id,
+        status: pool.status,
+        vehicleName: pool.vehicle?.name ?? 'Bullet Tesla',
+        capacity: pool.vehicle?.capacity ?? 3,
+        memberCount: pool._count?.members ?? 1,
+      },
+    };
+  }
+  const { poolMember: _pm, ...rideProps } = ride;
+  return rideProps;
+}
+
 @Injectable()
 export class RideService {
   constructor(
@@ -73,29 +135,35 @@ export class RideService {
     });
   }
 
-  listPassengerRides(passengerId: string): Promise<RideRequest[]> {
-    return this.prisma.rideRequest.findMany({
+  async listPassengerRides(
+    passengerId: string,
+  ): Promise<PassengerRideDetails[]> {
+    const rides = await this.prisma.rideRequest.findMany({
       where: { passengerId },
       orderBy: { createdAt: 'desc' },
+      include: passengerRideInclude,
     });
+
+    return rides.map(mapPassengerRide);
   }
 
   async getPassengerRide(
     rideId: string,
     passengerId: string,
-  ): Promise<RideRequest> {
+  ): Promise<PassengerRideDetails> {
     const ride = await this.prisma.rideRequest.findFirst({
       where: {
         id: rideId,
         passengerId,
       },
+      include: passengerRideInclude,
     });
 
     if (!ride) {
       throw new NotFoundException('Ride request not found');
     }
 
-    return ride;
+    return mapPassengerRide(ride);
   }
 
   async cancelPassengerRide(

@@ -48,6 +48,7 @@ describe('RideService ownership authorization', () => {
     expect(findMany).toHaveBeenCalledWith({
       where: { passengerId: 'passenger-id' },
       orderBy: { createdAt: 'desc' },
+      include: expect.anything(),
     });
 
     await module.close();
@@ -84,6 +85,50 @@ describe('RideService ownership authorization', () => {
         id: 'ride-id',
         passengerId: 'passenger-id',
       },
+      include: expect.anything(),
+    });
+
+    await module.close();
+  });
+
+  it('maps pooled ride details and discounted fare when ride is pooled', async () => {
+    const pooledPrismaRide = {
+      ...ownedRide,
+      poolMember: {
+        id: 'member-1',
+        farePaisa: 1600,
+        seatCount: 1,
+        pool: {
+          id: 'pool-123',
+          status: 'ACTIVE',
+          vehicle: {
+            id: 'veh-1',
+            name: 'Bullet Tesla',
+            capacity: 3,
+          },
+          _count: {
+            members: 2,
+          },
+        },
+      },
+    };
+
+    const findFirst = vi.fn().mockResolvedValue(pooledPrismaRide);
+    const module = await createModule({
+      rideRequest: { findFirst },
+    } as unknown as PrismaService);
+    const service = module.get(RideService);
+
+    const result = await service.getPassengerRide('ride-id', 'passenger-id');
+
+    expect(result.poolId).toBe('pool-123');
+    expect(result.farePaisa).toBe(1600);
+    expect(result.pool).toEqual({
+      id: 'pool-123',
+      status: 'ACTIVE',
+      vehicleName: 'Bullet Tesla',
+      capacity: 3,
+      memberCount: 2,
     });
 
     await module.close();
