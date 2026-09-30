@@ -20,6 +20,18 @@ function createPrismaMock(vehicle: VehicleRecord | null) {
   };
 
   const prisma = {
+    vehicle: {
+      findMany: vi.fn(async ({ where }: { where: { driverId: string } }) =>
+        committed.vehicle && committed.vehicle.driverId === where.driverId
+          ? [committed.vehicle]
+          : [],
+      ),
+      create: vi.fn(async ({ data }: { data: Omit<VehicleRecord, 'id'> }) => {
+        const newVehicle = { id: 'auto-created-id', ...data };
+        committed.vehicle = newVehicle;
+        return newVehicle;
+      }),
+    },
     $transaction: vi.fn(
       async (callback: (transaction: unknown) => Promise<unknown>) => {
         const staged = {
@@ -124,5 +136,35 @@ describe('DriverVehicleService', () => {
         VehicleStatus.ONLINE,
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('returns existing driver vehicles', async () => {
+    const { committed, prisma } = createPrismaMock({
+      id: 'bullet-id',
+      driverId: 'jashim-id',
+      name: 'Bullet',
+      capacity: 3,
+      status: VehicleStatus.OFFLINE,
+    });
+    const service = new DriverVehicleService(prisma);
+
+    await expect(service.getDriverVehicles('jashim-id')).resolves.toEqual([
+      committed.vehicle,
+    ]);
+  });
+
+  it('creates and returns a default vehicle if none exists for the driver', async () => {
+    const { prisma } = createPrismaMock(null);
+    const service = new DriverVehicleService(prisma);
+
+    await expect(service.getDriverVehicles('new-driver-id')).resolves.toEqual([
+      {
+        id: 'auto-created-id',
+        driverId: 'new-driver-id',
+        name: 'Bullet',
+        capacity: 3,
+        status: VehicleStatus.OFFLINE,
+      },
+    ]);
   });
 });

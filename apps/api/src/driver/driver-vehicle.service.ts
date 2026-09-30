@@ -18,6 +18,41 @@ export interface DriverVehicleResult {
 export class DriverVehicleService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getDriverVehicles(driverId: string): Promise<DriverVehicleResult[]> {
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: { driverId },
+      select: {
+        id: true,
+        driverId: true,
+        name: true,
+        capacity: true,
+        status: true,
+      },
+    });
+
+    if (vehicles.length > 0) {
+      return vehicles;
+    }
+
+    const created = await this.prisma.vehicle.create({
+      data: {
+        driverId,
+        name: 'Bullet',
+        capacity: 3,
+        status: VehicleStatus.OFFLINE,
+      },
+      select: {
+        id: true,
+        driverId: true,
+        name: true,
+        capacity: true,
+        status: true,
+      },
+    });
+
+    return [created];
+  }
+
   updateVehicleStatus(
     driverId: string,
     vehicleId: string,
