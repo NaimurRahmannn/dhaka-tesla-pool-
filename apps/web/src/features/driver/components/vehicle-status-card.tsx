@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { updateVehicleStatus } from "../api/driver-api";
+import { useEffect, useState } from "react";
+import { getDriverVehicles, updateVehicleStatus } from "../api/driver-api";
 import type { VehicleStatus } from "../types/driver.types";
 
 export function VehicleStatusCard({
-  vehicleId = "00000000-0000-4000-8000-000000000010",
+  vehicleId,
   initialStatus = "OFFLINE",
   onStatusChange,
 }: {
@@ -13,12 +13,56 @@ export function VehicleStatusCard({
   initialStatus?: VehicleStatus;
   onStatusChange?: (status: VehicleStatus) => void;
 }) {
-  const [currentVehicleId, setCurrentVehicleId] = useState(vehicleId);
+  const [currentVehicleId, setCurrentVehicleId] = useState(vehicleId ?? "");
   const [status, setStatus] = useState<VehicleStatus>(initialStatus);
+  const [vehicleName, setVehicleName] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (vehicleId) {
+      return;
+    }
+
+    let isMounted = true;
+    async function loadDriverVehicle() {
+      if (typeof getDriverVehicles !== "function") return;
+      setIsLoading(true);
+      try {
+        const vehicles = await getDriverVehicles();
+        if (isMounted && vehicles && vehicles.length > 0) {
+          const firstVehicle = vehicles[0];
+          setCurrentVehicleId(firstVehicle.id);
+          setStatus(firstVehicle.status);
+          setVehicleName(firstVehicle.name);
+          onStatusChange?.(firstVehicle.status);
+        }
+      } catch (error: unknown) {
+        if (isMounted) {
+          setErrorMessage(
+            error instanceof Error ? error.message : "Failed to load driver vehicle",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadDriverVehicle();
+    return () => {
+      isMounted = false;
+    };
+  }, [vehicleId, onStatusChange]);
+
   async function handleToggleStatus(nextStatus: VehicleStatus) {
+    if (!currentVehicleId) {
+      setErrorMessage("No vehicle ID available to update");
+      return;
+    }
+
     setIsUpdating(true);
     setErrorMessage(null);
 
@@ -59,7 +103,13 @@ export function VehicleStatusCard({
             </span>
           </div>
           <p className="text-xs text-slate-500">
-            Vehicle ID: <span className="font-mono">{currentVehicleId}</span>
+            Vehicle ID:{" "}
+            <span className="font-mono">
+              {currentVehicleId || (isLoading ? "Loading vehicle..." : "None")}
+            </span>
+            {vehicleName ? (
+              <span className="ml-1 font-medium text-slate-700">({vehicleName})</span>
+            ) : null}
           </p>
         </div>
 
@@ -69,7 +119,7 @@ export function VehicleStatusCard({
               type="button"
               className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
               onClick={() => handleToggleStatus("OFFLINE")}
-              disabled={isUpdating}
+              disabled={isUpdating || isLoading || !currentVehicleId}
             >
               {isUpdating ? "Updating..." : "Go Offline"}
             </button>
@@ -78,7 +128,7 @@ export function VehicleStatusCard({
               type="button"
               className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               onClick={() => handleToggleStatus("ONLINE")}
-              disabled={isUpdating}
+              disabled={isUpdating || isLoading || !currentVehicleId}
             >
               {isUpdating ? "Updating..." : "Go Online"}
             </button>

@@ -1,15 +1,17 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { updateVehicleStatus } from "../api/driver-api";
+import { getDriverVehicles, updateVehicleStatus } from "../api/driver-api";
 import { useVehicleStatus } from "./use-vehicle-status";
 
 vi.mock("../api/driver-api", () => ({
   updateVehicleStatus: vi.fn(),
+  getDriverVehicles: vi.fn(),
 }));
 
 describe("useVehicleStatus", () => {
   beforeEach(() => {
     vi.mocked(updateVehicleStatus).mockReset();
+    vi.mocked(getDriverVehicles).mockReset();
   });
 
   it("updates vehicle status and state", async () => {
@@ -44,5 +46,24 @@ describe("useVehicleStatus", () => {
     });
 
     expect(result.current.errorMessage).toBe("Vehicle offline error");
+  });
+
+  it("auto-fetches driver vehicle when initialVehicleId is omitted", async () => {
+    vi.mocked(getDriverVehicles).mockResolvedValue([
+      {
+        id: "veh-loaded-1",
+        driverId: "driver-1",
+        name: "Bullet",
+        capacity: 3,
+        status: "ONLINE",
+      },
+    ]);
+
+    const { result } = renderHook(() => useVehicleStatus());
+
+    await waitFor(() => {
+      expect(result.current.vehicleId).toBe("veh-loaded-1");
+      expect(result.current.status).toBe("ONLINE");
+    });
   });
 });

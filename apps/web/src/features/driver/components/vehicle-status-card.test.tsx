@@ -1,15 +1,17 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { updateVehicleStatus } from "../api/driver-api";
+import { getDriverVehicles, updateVehicleStatus } from "../api/driver-api";
 import { VehicleStatusCard } from "./vehicle-status-card";
 
 vi.mock("../api/driver-api", () => ({
   updateVehicleStatus: vi.fn(),
+  getDriverVehicles: vi.fn(),
 }));
 
 describe("VehicleStatusCard", () => {
   beforeEach(() => {
     vi.mocked(updateVehicleStatus).mockReset();
+    vi.mocked(getDriverVehicles).mockReset();
   });
 
   it("renders offline status by default and allows going online", async () => {
@@ -68,5 +70,22 @@ describe("VehicleStatusCard", () => {
     expect(
       await screen.findByText("Vehicle does not belong to this driver"),
     ).toBeInTheDocument();
+  });
+
+  it("automatically loads the driver's vehicle when vehicleId is not provided", async () => {
+    vi.mocked(getDriverVehicles).mockResolvedValue([
+      {
+        id: "veh-auto-1",
+        driverId: "driver-1",
+        name: "Bullet",
+        capacity: 3,
+        status: "OFFLINE",
+      },
+    ]);
+
+    render(<VehicleStatusCard />);
+
+    expect(await screen.findByText("veh-auto-1")).toBeInTheDocument();
+    expect(screen.getByText(/Bullet/)).toBeInTheDocument();
   });
 });
