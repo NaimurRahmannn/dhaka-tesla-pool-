@@ -48,6 +48,13 @@ export class DriverController {
     return this.driverRideService.getAssignedRides(user.id);
   }
 
+  @Get('rides/completed')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.DRIVER)
+  getCompletedRides(@CurrentUser() user: PublicUser) {
+    return this.driverRideService.getCompletedRides(user.id);
+  }
+
   @Get('rides/nearby')
   @UseGuards(JwtAuthGuard)
   @Roles(UserRole.DRIVER)

@@ -33,6 +33,7 @@ describe('DriverController authorization', () => {
     ['startRide', DriverController.prototype.startRide],
     ['completeRide', DriverController.prototype.completeRide],
     ['getAssignedRides', DriverController.prototype.getAssignedRides],
+    ['getCompletedRides', DriverController.prototype.getCompletedRides],
     ['getNearbyRides', DriverController.prototype.getNearbyRides],
     ['autoAssign', DriverController.prototype.autoAssign],
     ['acceptRide', DriverController.prototype.acceptRide],
@@ -290,6 +291,36 @@ describe('DriverController', () => {
 
     expect(result).toHaveLength(1);
     expect(driverRideService.getAssignedRides).toHaveBeenCalledWith('jashim-id');
+  });
+
+  it('delegates completed ride retrieval to DriverRideService', async () => {
+    const driverVehicleService = {} as unknown as DriverVehicleService;
+    const driverPoolService = {} as unknown as DriverPoolService;
+    const driverRideService = {
+      getCompletedRides: vi.fn().mockResolvedValue([
+        {
+          id: 'ride-1',
+          passengerId: 'p-1',
+          passengerName: 'Nusrat',
+          status: RideStatus.COMPLETED,
+        },
+      ]),
+    } as unknown as DriverRideService;
+    const controller = new DriverController(
+      driverVehicleService,
+      driverPoolService,
+      driverRideService,
+    );
+
+    const result = await controller.getCompletedRides({
+      id: 'jashim-id',
+      name: 'Jashim',
+      email: 'jashim@example.com',
+      role: UserRole.DRIVER,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(driverRideService.getCompletedRides).toHaveBeenCalledWith('jashim-id');
   });
 
   it('delegates nearby ride retrieval with coordinate parsing', async () => {

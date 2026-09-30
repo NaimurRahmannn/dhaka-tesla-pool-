@@ -41,6 +41,10 @@ export function getAssignedRides(): Promise<AssignedRide[]> {
   return apiClient.get<AssignedRide[]>("/driver/rides/assigned");
 }
 
+export function getCompletedRides(): Promise<AssignedRide[]> {
+  return apiClient.get<AssignedRide[]>("/driver/rides/completed");
+}
+
 export function getNearbyRides(
   lat: number,
   lng: number,

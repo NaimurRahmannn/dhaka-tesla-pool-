@@ -7,6 +7,7 @@ import {
   completeRide,
   getAssignedPools,
   getAssignedRides,
+  getCompletedRides,
   getDriverVehicles,
   getNearbyRides,
   startRide,
@@ -177,6 +178,34 @@ describe("driver api", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://api.example.test/driver/rides/assigned",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("fetches completed rides via getCompletedRides", async () => {
+    const mockCompleted = [
+      {
+        id: "ride-completed-1",
+        passengerId: "p-1",
+        passengerName: "Nusrat",
+        pickupLat: 23.7937,
+        pickupLng: 90.4043,
+        destinationLat: 23.733,
+        destinationLng: 90.4172,
+        status: "COMPLETED" as const,
+        requestedSeats: 1,
+        farePaisa: 35000,
+        poolId: "pool-1",
+        createdAt: "2026-09-30T10:00:00Z",
+      },
+    ];
+    const fetchMock = vi.fn(async () => Response.json(mockCompleted));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getCompletedRides()).resolves.toEqual(mockCompleted);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.example.test/driver/rides/completed",
       expect.objectContaining({ method: "GET" }),
     );
   });
