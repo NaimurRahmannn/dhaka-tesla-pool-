@@ -110,9 +110,10 @@ describe("RideForm", () => {
       expect(screen.getByTestId("route-preview")).toBeInTheDocument();
       expect(screen.getByTestId("route-preview-distance")).toHaveTextContent("3.5 km");
       expect(screen.getByTestId("route-preview-duration")).toHaveTextContent("10 mins");
-      expect(screen.getByTestId("route-preview-solo-fare")).toHaveTextContent("BDT 110.00");
-      expect(screen.getByTestId("route-preview-pooled-fare")).toHaveTextContent("BDT 88.00");
-      expect(screen.getByTestId("route-preview-pool-savings")).toHaveTextContent("Save BDT 22.00");
+      expect(screen.getByTestId("route-preview-solo-fare")).toHaveTextContent("BDT 40.00");
+      expect(screen.getByTestId("route-preview-pooled-fare")).toHaveTextContent("BDT 32.00");
+      expect(screen.getByTestId("route-preview-pool-savings")).toHaveTextContent("Save BDT 8.00");
+      expect(screen.getByText("Base BDT 20.00 + BDT 5.00/km (4 km)")).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 

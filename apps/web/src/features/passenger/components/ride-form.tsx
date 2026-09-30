@@ -7,6 +7,12 @@ import { MapView, useMapRoute } from "@/features/map";
 import type { Coordinates } from "@/features/map";
 import { createRide } from "../api/passenger-api";
 import type { CreateRideRequest } from "../types/passenger.types";
+import {
+  calculateFarePreview,
+  previewBaseFarePaisa,
+  previewPoolDiscountPercent,
+  previewPricePerKmPaisa,
+} from "../utils/calculate-fare-preview";
 import { formatFare } from "../utils/format-fare";
 import {
   DHAKA_HUBS,
@@ -93,18 +99,7 @@ export function RideForm() {
 
   const fareEstimates = useMemo(() => {
     if (!route) return null;
-    const distanceMeter = route.distanceMeter ?? 0;
-    const distanceKilometer = Math.ceil(distanceMeter / 1000);
-    const distanceChargePaisa = distanceKilometer * 1500;
-    const soloFarePaisa = 5000 + distanceChargePaisa;
-    const poolDiscountPaisa = Math.floor(soloFarePaisa * 0.2);
-    const pooledFarePaisa = soloFarePaisa - poolDiscountPaisa;
-    return {
-      distanceKilometer,
-      soloFarePaisa,
-      poolDiscountPaisa,
-      pooledFarePaisa,
-    };
+    return calculateFarePreview(route.distanceMeter ?? 0);
   }, [route]);
 
   function applyPresetRoute(shortcut: (typeof ROUTE_SHORTCUTS)[number]) {
@@ -355,14 +350,15 @@ export function RideForm() {
                     <span className="text-[11px] text-slate-400">standard rate</span>
                   </div>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    Base BDT 50.00 + BDT 15.00/km ({fareEstimates.distanceKilometer} km)
+                    Base {formatFare(previewBaseFarePaisa)} +{" "}
+                    {formatFare(previewPricePerKmPaisa)}/km ({fareEstimates.distanceKilometer} km)
                   </p>
                 </div>
 
                 <div className="rounded-md border border-emerald-300 bg-emerald-100/70 p-3 shadow-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-semibold text-emerald-900">
-                      Pooled Fare (20% Split Savings)
+                      Pooled Fare ({previewPoolDiscountPercent}% Split Savings)
                     </span>
                     <span
                       data-testid="route-preview-pool-savings"

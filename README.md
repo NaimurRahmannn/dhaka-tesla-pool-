@@ -124,7 +124,7 @@ discountPaisa = isPooled ? floor(subtotalPaisa * 20 / 100) : 0
 finalFarePaisa = subtotalPaisa - discountPaisa
 ```
 
-For 5,230 meters, billing distance is 6 km: 2,000 + 3,000 = 5,000 paisa (BDT 50); the pooled fare is 4,000 paisa (BDT 40). Each pool member stores an individual fare. The fare constants in `apps/api/src/fare/fare.config.ts` are the values used by the API; `agent-context/10-fare-model.md` still contains an older 50/15 example.
+For 5,230 meters, billing distance is 6 km: 2,000 + 3,000 = 5,000 paisa (BDT 50); the pooled fare is 4,000 paisa (BDT 40). Each pool member stores an individual fare. The ride form mirrors these rates for its pre-submission preview, while the API remains authoritative and calculates the persisted fare from its own route result.
 
 ### Pool matching and capacity
 

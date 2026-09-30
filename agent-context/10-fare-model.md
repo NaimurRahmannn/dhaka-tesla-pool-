@@ -38,15 +38,16 @@ If pooled, the discount is 800 paisa, making his fare 3,200 paisa (BDT 32).
 A route of 5,230 meters is billed as 6 km. Its solo fare is 5,000 paisa
 (BDT 50), and its pooled fare is 4,000 paisa (BDT 40).
 
-## Ownership and Current Gaps
+## Ownership and Current Behavior
 
 The API calculates fares from routing distance; each passenger has an
 individual fare, stored as `RideRequest.estimatedFarePaisa` and, for pool
 members, `PoolMember.farePaisa`. There is no single shared pool fare.
 
-The browser ride form still previews an older BDT 50 base plus BDT 15/km
-formula. It must be aligned with the API before the preview is treated as a
-reliable quote. Adding a ride to an existing pool currently stores the solo
-estimate instead of recalculating the pooled fare; see
-`09-pooling-algorithm.md`. These are implementation gaps, not alternate fare
-rules.
+The browser ride form mirrors the current API rates for a pre-submission fare
+preview. The API remains authoritative: it calculates and stores the fare from
+its own OSRM route when the ride is created.
+
+Adding a ride to an existing pool currently stores the solo estimate instead
+of recalculating the pooled fare; see `09-pooling-algorithm.md`. This is an
+implementation gap, not an alternate fare rule.
