@@ -14,17 +14,19 @@ export function DriverRideDetailsPage({
 }) {
   return (
     <ProtectedRoute requiredRole="DRIVER">
-      <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center gap-6 px-6 py-10">
-        <div className="mb-1">
-          <Link
-            href="/driver"
-            className="text-sm font-medium text-emerald-700 hover:underline"
-          >
-            &larr; Back to Driver Workspace
-          </Link>
-        </div>
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <div className="mb-1">
+            <Link
+              href="/driver"
+              className="text-xs font-semibold text-emerald-700 hover:underline"
+            >
+              &larr; Back to Driver Workspace
+            </Link>
+          </div>
 
-        <DriverRideActions rideId={rideId} initialStatus={initialStatus} />
+          <DriverRideActions rideId={rideId} initialStatus={initialStatus} />
+        </div>
       </main>
     </ProtectedRoute>
   );

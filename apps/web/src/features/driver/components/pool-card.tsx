@@ -14,13 +14,13 @@ export function PoolCard({ pool }: { pool: DriverPool }) {
     "bg-slate-100 text-slate-700 border-slate-200";
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow">
-      <div className="flex items-start justify-between gap-4">
+    <article className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5 shadow-sm transition hover:border-slate-300 hover:shadow">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Pool
           </p>
-          <h3 className="truncate text-base font-semibold text-slate-950">
+          <h3 className="break-all text-base font-semibold text-slate-950">
             {pool.id}
           </h3>
           <span
@@ -32,7 +32,7 @@ export function PoolCard({ pool }: { pool: DriverPool }) {
 
         <Link
           href={`/driver/pools`}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-600 hover:text-emerald-700"
+          className="shrink-0 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-emerald-600 hover:text-emerald-700"
         >
           View Pool
         </Link>
@@ -43,9 +43,9 @@ export function PoolCard({ pool }: { pool: DriverPool }) {
           <dt>Pooled Passengers</dt>
           <dd className="font-semibold text-slate-900">{pool.memberCount}</dd>
         </div>
-        <div className="flex justify-between gap-2 text-xs">
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2 text-xs">
           <dt className="text-slate-500">Vehicle ID</dt>
-          <dd className="truncate font-mono text-slate-700">{pool.vehicleId}</dd>
+          <dd className="break-all font-mono text-slate-700">{pool.vehicleId}</dd>
         </div>
       </dl>
     </article>

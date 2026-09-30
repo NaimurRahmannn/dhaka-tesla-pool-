@@ -25,10 +25,10 @@ export function NearbyRidesSection({
   onRefresh: () => void;
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
+    <section className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Live Dispatch Feed
             </p>
@@ -44,12 +44,12 @@ export function NearbyRidesSection({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
           <button
             type="button"
             disabled={!isOnline || nearbyRides.length === 0 || isAssigning}
             onClick={onAutoAssign}
-            className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {isAssigning ? "Assigning..." : "⚡ Auto-Assign Closest Ride"}
           </button>
@@ -57,7 +57,7 @@ export function NearbyRidesSection({
             type="button"
             disabled={!isOnline || isLoading}
             onClick={onRefresh}
-            className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+            className="w-full sm:w-auto inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
           >
             {isLoading ? "Searching..." : "Refresh"}
           </button>
@@ -114,7 +114,7 @@ export function NearbyRidesSection({
             return (
               <div
                 key={ride.id}
-                className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:shadow"
+                className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-4 sm:p-5 shadow-sm transition hover:border-emerald-300 hover:shadow"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -130,7 +130,7 @@ export function NearbyRidesSection({
                     <p className="text-sm font-bold text-slate-900">
                       {ride.passengerName}
                     </p>
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
                       <span className="font-semibold text-slate-900">{pickupName}</span>
                       <span>&rarr;</span>
                       <span className="font-semibold text-slate-900">{destinationName}</span>
@@ -147,7 +147,7 @@ export function NearbyRidesSection({
                   ) : null}
                 </div>
 
-                <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                <div className="mt-4 border-t border-slate-100 pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
                   <span className="text-xs font-mono text-slate-400">
                     ID: {ride.id.slice(0, 8)}...
                   </span>
@@ -155,7 +155,7 @@ export function NearbyRidesSection({
                     type="button"
                     disabled={isAssigning}
                     onClick={() => onAccept(ride.id)}
-                    className="rounded-md bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50"
+                    className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:opacity-50"
                   >
                     {isAssigning ? "Accepting..." : "Accept Ride"}
                   </button>

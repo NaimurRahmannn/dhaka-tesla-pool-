@@ -79,14 +79,14 @@ export function DriverRideActions({
     "bg-slate-100 text-slate-700 border-slate-200";
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+    <article className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
       <div className="space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Assigned Ride
             </p>
-            <h2 className="text-xl font-bold text-slate-950">{rideId}</h2>
+            <h2 className="break-all text-xl font-bold text-slate-950">{rideId}</h2>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Status:</span>
@@ -110,11 +110,11 @@ export function DriverRideActions({
             Lifecycle Actions:
           </p>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-3">
             {status === "MATCHED" ? (
               <button
                 type="button"
-                className="rounded-md bg-purple-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-purple-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 onClick={handleArrive}
                 disabled={isSubmitting}
               >
@@ -125,7 +125,7 @@ export function DriverRideActions({
             {status === "DRIVER_ARRIVED" ? (
               <button
                 type="button"
-                className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 onClick={handleStart}
                 disabled={isSubmitting}
               >
@@ -136,7 +136,7 @@ export function DriverRideActions({
             {status === "STARTED" ? (
               <button
                 type="button"
-                className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 onClick={handleComplete}
                 disabled={isSubmitting}
               >

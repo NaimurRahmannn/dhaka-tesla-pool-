@@ -103,30 +103,33 @@ function DriverDashboardContent() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-6 py-10">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-            Driver Workspace
-          </p>
-          <h1 className="text-3xl font-bold text-slate-950">
-            Welcome back, {user?.name ?? "Driver"}
-          </h1>
-          <p className="text-sm text-slate-600">
-            Signed in as <span className="font-medium text-slate-900">{user?.email}</span>
-          </p>
-        </div>
+    <main className="min-h-screen bg-slate-50">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <header className="rounded-lg border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                Driver Workspace
+              </p>
+              <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">
+                Welcome back, {user?.name ?? "Driver"}
+              </h1>
+              <p className="text-sm text-slate-600">
+                Signed in as <span className="font-medium text-slate-900">{user?.email}</span>
+              </p>
+            </div>
 
-        <Link
-          href="/driver/pools"
-          className="rounded-md bg-emerald-700 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
-        >
-          View Assigned Pools
-        </Link>
-      </header>
+            <Link
+              href="/driver/pools"
+              className="inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 sm:w-auto"
+            >
+              View Assigned Pools
+            </Link>
+          </div>
+        </header>
 
-      {/* Driver Location Selector */}
-      <section>
+        {/* Driver Location Selector */}
+        <section>
         <DriverLocationSelector onLocationChange={handleLocationChange} />
       </section>
 
@@ -178,8 +181,8 @@ function DriverDashboardContent() {
       </section>
 
       {/* Quick Ride Action Finder */}
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+      <section className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           Manual Ride Lookup (Optional)
         </h2>
         <form
@@ -189,13 +192,13 @@ function DriverDashboardContent() {
           <input
             type="text"
             placeholder="Enter Ride ID (e.g. UUID) if needed"
-            className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+            className="w-full flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
             value={quickRideId}
             onChange={(e) => setQuickRideId(e.target.value)}
           />
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            className="w-full sm:w-auto rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
           >
             Open Ride Actions
           </button>
@@ -214,22 +217,22 @@ function DriverDashboardContent() {
           </Link>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-4">
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm">
             <p className="text-xs text-slate-500 uppercase font-semibold">Total Pools</p>
-            <p className="mt-2 text-3xl font-bold text-slate-950">{pools.length}</p>
+            <p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-slate-950">{pools.length}</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm">
             <p className="text-xs text-slate-500 uppercase font-semibold">Active Pools</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-700">{activePools}</p>
+            <p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-emerald-700">{activePools}</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm">
             <p className="text-xs text-slate-500 uppercase font-semibold">Matching</p>
-            <p className="mt-2 text-3xl font-bold text-amber-600">{matchingPools}</p>
+            <p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-amber-600">{matchingPools}</p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm">
             <p className="text-xs text-slate-500 uppercase font-semibold">Passengers</p>
-            <p className="mt-2 text-3xl font-bold text-blue-700">{totalPassengers}</p>
+            <p className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold text-blue-700">{totalPassengers}</p>
           </div>
         </div>
 
@@ -244,19 +247,20 @@ function DriverDashboardContent() {
         ) : null}
 
         {!isPoolsLoading && !poolsError && pools.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-600">
             No pools assigned to this driver yet.
           </div>
         ) : null}
 
         {pools.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
             {pools.slice(0, 4).map((pool) => (
               <PoolCard key={pool.id} pool={pool} />
             ))}
           </div>
         ) : null}
       </section>
+      </div>
     </main>
   );
 }
