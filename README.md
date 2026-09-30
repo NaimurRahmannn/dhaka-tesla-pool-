@@ -274,7 +274,6 @@ For a walkthrough, register a driver and two passengers, bring the driver's vehi
 
 ## Known Limitations
 
-- The ride form's **browser fare preview** still uses an older 50 taka base and 15 taka/km calculation. The API uses the 20/5 model documented above and owns the persisted fare. The preview should be aligned before treating it as a reliable quote.
 - When a driver accepts a ride into an **existing pool**, the current join path checks capacity but does not rerun corridor compatibility and stores the ride's estimated solo fare as the membership fare. Initial multi-ride pool creation does run compatibility checks and pooled fare calculation. This difference needs to be resolved for consistent pooling behavior.
 - The browser stores the access token in `localStorage`; there are no refresh tokens or server-side sessions.
 - Driver location is a selected Dhaka hub rather than live GPS. Nearby ride discovery filters an in-memory set of requested rides by Haversine distance, which is appropriate only for small data volumes.
