@@ -109,4 +109,72 @@ describe('RolesGuard', () => {
       ),
     ).toBe(true);
   });
+
+  it('authenticates via JwtAuthGuard when an authorization header is present', async () => {
+    const request: {
+      headers: { authorization: string };
+      user?: { id: string; name: string; email: string; role: UserRole };
+    } = {
+      headers: { authorization: 'Bearer test-token' },
+    };
+    const context = {
+      getHandler: () => DriverController.prototype.driverOnly,
+      getClass: () => DriverController,
+      switchToHttp: () => ({
+        getRequest: () => request,
+      }),
+    } as unknown as ExecutionContext;
+
+    const mockJwtGuard = {
+      canActivate: vi.fn().mockImplementation(() => {
+        request.user = {
+          id: 'user-id',
+          name: 'Jashim',
+          email: 'jashim@example.com',
+          role: UserRole.DRIVER,
+        };
+        return true;
+      }),
+    };
+
+    const guard = new RolesGuard(new Reflector(), mockJwtGuard as never);
+    const result = await guard.canActivate(context);
+
+    expect(mockJwtGuard.canActivate).toHaveBeenCalledWith(context);
+    expect(result).toBe(true);
+  });
+
+  it('rejects access when JwtAuthGuard populates a role that does not match', async () => {
+    const request: {
+      headers: { authorization: string };
+      user?: { id: string; name: string; email: string; role: UserRole };
+    } = {
+      headers: { authorization: 'Bearer test-token' },
+    };
+    const context = {
+      getHandler: () => DriverController.prototype.driverOnly,
+      getClass: () => DriverController,
+      switchToHttp: () => ({
+        getRequest: () => request,
+      }),
+    } as unknown as ExecutionContext;
+
+    const mockJwtGuard = {
+      canActivate: vi.fn().mockImplementation(() => {
+        request.user = {
+          id: 'user-id',
+          name: 'Nusrat',
+          email: 'nusrat@example.com',
+          role: UserRole.PASSENGER,
+        };
+        return true;
+      }),
+    };
+
+    const guard = new RolesGuard(new Reflector(), mockJwtGuard as never);
+    const result = await guard.canActivate(context);
+
+    expect(result).toBe(false);
+  });
 });
+
