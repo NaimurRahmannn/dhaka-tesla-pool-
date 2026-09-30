@@ -14,6 +14,7 @@ import { RideModule } from './ride/ride.module.js';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env', '../../.env'],
     }),
     AuthModule,
     RoutingModule,
