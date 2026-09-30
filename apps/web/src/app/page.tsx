@@ -14,7 +14,7 @@ const routes = [
   {
     href: "/passenger",
     label: "Passenger",
-    description: "Passenger workflow boundary placeholder.",
+    description: "Passenger workspace for booking rides and tracking ride status.",
   },
   {
     href: "/driver",
