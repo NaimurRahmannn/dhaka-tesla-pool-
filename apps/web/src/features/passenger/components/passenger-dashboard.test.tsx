@@ -5,6 +5,13 @@ import { PassengerDashboard } from "./passenger-dashboard";
 
 vi.mock("@/features/auth", () => ({
   ProtectedRoute: ({ children }: { children: React.ReactNode }) => children,
+  useAuth: () => ({
+    user: {
+      name: "Nusrat",
+      email: "nusrat@example.com",
+      role: "PASSENGER",
+    },
+  }),
 }));
 
 vi.mock("../api/passenger-api", () => ({

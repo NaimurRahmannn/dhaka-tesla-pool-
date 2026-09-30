@@ -99,7 +99,7 @@ describe("RideForm", () => {
     render(<RideForm />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Banani → Gulshan 2" }),
+      screen.getByRole("button", { name: "Banani to Gulshan 2" }),
     );
 
     expect(screen.getByLabelText("Pickup latitude")).toHaveValue(23.7937);

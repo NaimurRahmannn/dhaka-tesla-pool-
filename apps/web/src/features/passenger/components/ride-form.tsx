@@ -15,22 +15,22 @@ export { DHAKA_HUBS, DHAKA_AREAS };
 
 export const ROUTE_SHORTCUTS = [
   {
-    label: "Banani → Gulshan 2",
+    label: "Banani to Gulshan 2",
     pickup: { lat: "23.7937", lng: "90.4043" },
     destination: { lat: "23.7925", lng: "90.4078" },
   },
   {
-    label: "Uttara → Bashundhara",
+    label: "Uttara to Bashundhara",
     pickup: { lat: "23.869", lng: "90.3986" },
     destination: { lat: "23.8103", lng: "90.4225" },
   },
   {
-    label: "Dhanmondi → Shahbagh",
+    label: "Dhanmondi to Shahbagh",
     pickup: { lat: "23.7533", lng: "90.3769" },
     destination: { lat: "23.738", lng: "90.3957" },
   },
   {
-    label: "Gulshan 1 → Motijheel",
+    label: "Gulshan 1 to Motijheel",
     pickup: { lat: "23.7797", lng: "90.4184" },
     destination: { lat: "23.733", lng: "90.4172" },
   },
@@ -148,10 +148,10 @@ export function RideForm() {
 
   return (
     <form
-      className="grid w-full gap-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+      className="grid w-full gap-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
       onSubmit={handleSubmit}
     >
-      <div className="space-y-1">
+      <div className="space-y-2">
         <Link
           href="/passenger"
           className="text-xs font-medium text-emerald-700 hover:underline"
@@ -162,22 +162,22 @@ export function RideForm() {
           Request a ride
         </h1>
         <p className="text-sm text-slate-600">
-          Select your pickup and destination in Dhaka.
+          Choose a pickup and destination. Route and fare are calculated after you submit.
         </p>
       </div>
 
       {/* Quick Route Shortcuts */}
-      <div className="space-y-2 rounded-lg bg-slate-50 p-4 border border-slate-200">
+      <div className="space-y-3 border-t border-slate-100 pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           Popular Trips
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {ROUTE_SHORTCUTS.map((shortcut) => (
             <button
               key={shortcut.label}
               type="button"
               onClick={() => applyPresetRoute(shortcut)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-emerald-600 hover:text-emerald-700 active:scale-95"
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-xs font-medium text-slate-700 shadow-sm transition hover:border-emerald-600 hover:text-emerald-700 active:scale-[0.99]"
             >
               {shortcut.label}
             </button>
@@ -186,7 +186,7 @@ export function RideForm() {
       </div>
 
       {/* Pickup Section */}
-      <div className="space-y-3 rounded-lg border border-slate-200 p-4">
+      <fieldset className="space-y-3 border-t border-slate-100 pt-5">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <label
             htmlFor="pickup-select"
@@ -197,9 +197,9 @@ export function RideForm() {
           <button
             type="button"
             onClick={handleUseCurrentLocation}
-            className="text-xs font-medium text-emerald-700 hover:underline flex items-center gap-1"
+            className="inline-flex w-fit text-xs font-medium text-emerald-700 hover:underline"
           >
-            <span>📍 Use current location</span>
+            Use current location
           </button>
         </div>
 
@@ -210,7 +210,7 @@ export function RideForm() {
         <select
           id="pickup-select"
           aria-label="Select popular pickup landmark"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-emerald-600"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
           onChange={(e) => handleSelectPickupHub(e.target.value)}
           value={
             form.pickupLat && form.pickupLng
@@ -233,14 +233,14 @@ export function RideForm() {
         </select>
 
         {pickupName ? (
-          <p className="text-xs font-medium text-emerald-800">
+          <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
             Selected pickup: {pickupName}
           </p>
         ) : null}
-      </div>
+      </fieldset>
 
       {/* Destination Section */}
-      <div className="space-y-3 rounded-lg border border-slate-200 p-4">
+      <fieldset className="space-y-3 border-t border-slate-100 pt-5">
         <label
           htmlFor="destination-select"
           className="text-sm font-semibold text-slate-900"
@@ -251,7 +251,7 @@ export function RideForm() {
         <select
           id="destination-select"
           aria-label="Select popular destination landmark"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-emerald-600"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
           onChange={(e) => handleSelectDestinationHub(e.target.value)}
           value={
             form.destinationLat && form.destinationLng
@@ -274,11 +274,11 @@ export function RideForm() {
         </select>
 
         {destinationName ? (
-          <p className="text-xs font-medium text-emerald-800">
+          <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
             Selected destination: {destinationName}
           </p>
         ) : null}
-      </div>
+      </fieldset>
 
       {/* Hidden coordinate inputs for backend form submission and test compatibility */}
       <div className="sr-only">
@@ -315,7 +315,7 @@ export function RideForm() {
       ) : null}
 
       <button
-        className="rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         type="submit"
         disabled={isSubmitting}
       >
