@@ -44,6 +44,8 @@ Frontend routes are available for:
 - `/passenger/rides/new`
 - `/passenger/rides/:id`
 - `/driver`
+- `/driver/pools`
+- `/driver/rides/:id`
 
 The authentication flow uses the existing NestJS endpoints:
 
@@ -54,6 +56,7 @@ The authentication flow uses the existing NestJS endpoints:
 After login, passengers are routed to `/passenger` and drivers are routed to `/driver`. The frontend stores the MVP access token in `localStorage`; refresh tokens are not implemented.
 
 Passenger routes require an authenticated `PASSENGER` user. Drivers are redirected away from passenger-only pages.
+Driver routes require an authenticated `DRIVER` user. Passengers are redirected away from driver-only pages.
 
 The passenger workflow uses the existing NestJS ride endpoints:
 
@@ -62,7 +65,15 @@ The passenger workflow uses the existing NestJS ride endpoints:
 - `GET /rides/:id`
 - `PATCH /rides/:id/cancel`
 
-The frontend collects pickup and destination coordinates directly. Maps, GPS, pooling UI, payments, and realtime tracking are not implemented.
+The driver workflow uses the existing NestJS driver endpoints:
+
+- `GET /driver/pools`
+- `PATCH /driver/vehicles/:id/status`
+- `PATCH /driver/rides/:id/arrive`
+- `PATCH /driver/rides/:id/start`
+- `PATCH /driver/rides/:id/complete`
+
+The frontend collects coordinates and executes lifecycle transitions directly. Maps, GPS, pooling UI, payments, and realtime tracking are not implemented.
 
 ## Pooling Engine
 

@@ -43,6 +43,19 @@ Passenger pages require a `PASSENGER` user. Drivers are redirected away from pas
 
 The frontend uses the NestJS ride APIs through `src/features/passenger/api/passenger-api.ts`. Components do not call HTTP directly.
 
+## Driver Workflow
+
+- `/driver`: displays driver profile information, vehicle status toggle (`ONLINE` / `OFFLINE`), and assigned pool summary.
+- `/driver/pools`: lists assigned ride pools retrieved from `GET /driver/pools`.
+- `/driver/rides/[id]`: provides ride lifecycle action controls:
+  - `MATCHED`: Arrive at pickup (`PATCH /driver/rides/:id/arrive`)
+  - `DRIVER_ARRIVED`: Start ride (`PATCH /driver/rides/:id/start`)
+  - `STARTED`: Complete ride (`PATCH /driver/rides/:id/complete`)
+
+Driver pages require a `DRIVER` user. Passenger users are redirected away from driver-only routes.
+
+The frontend uses the NestJS driver APIs through `src/features/driver/api/driver-api.ts`. Components do not call HTTP directly.
+
 ## Tests
 
 Run from the repository root:
@@ -54,6 +67,6 @@ npm test --workspace=@dhaka-tesla-pool/web
 ## Structure
 
 - `src/app`: App Router routes.
-- `src/features`: future auth, passenger, and driver workflow boundaries.
+- `src/features`: auth, passenger, and driver feature modules.
 - `src/lib`: shared frontend utilities, including the API client.
 - `src/types`: frontend boundary types.
